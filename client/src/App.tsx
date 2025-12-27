@@ -9,6 +9,7 @@ import { MovieDetail } from "@/pages/MovieDetail";
 import { Checkout } from "@/pages/Checkout";
 import { MoviesList } from "@/pages/MoviesList";
 import { Cinemas } from "@/pages/Cinemas";
+import { CinemaSchedule } from "@/pages/CinemaSchedule";
 
 function Router() {
   return (
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/movie/:id" component={MovieDetail} />
       <Route path="/checkout" component={Checkout} />
       <Route path="/cinemas" component={Cinemas} />
+      <Route path="/cinema/:id" component={CinemaSchedule} />
       <Route component={NotFound} />
     </Switch>
   );

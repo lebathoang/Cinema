@@ -4,6 +4,7 @@ import { MapPin, Phone, Star, Clock, Info, ChevronRight, Search } from "lucide-r
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { Link } from "wouter";
 
 const cinemas = [
   {
@@ -104,10 +105,12 @@ export function Cinemas() {
                   </div>
 
                   <div className="flex flex-col justify-center gap-4 min-w-[200px]">
-                    <Button size="lg" className="rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all group/btn">
-                      VIEW SCHEDULE
-                      <ChevronRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
-                    </Button>
+                    <Link href={`/cinema/${cinema.id}`}>
+                      <Button size="lg" className="w-full rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all group/btn">
+                        VIEW SCHEDULE
+                        <ChevronRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
+                      </Button>
+                    </Link>
                     <div className="flex items-center justify-between text-muted-foreground text-xs px-2">
                       <div className="flex items-center gap-1">
                         <Phone className="h-3 w-3" />
