@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,8 +10,6 @@ const ROWS = 8;
 const COLS = 12;
 const PRICE = 14.99;
 
-const OCCUPIED = ["1-4", "1-5", "2-4", "2-5", "2-6", "5-2", "5-3", "6-8", "6-9"];
-
 interface SeatSelectorProps {
   onBooking: (count: number, total: number) => void;
 }
@@ -21,8 +19,10 @@ export function SeatSelector({ onBooking }: SeatSelectorProps) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
+  const occupiedSeats = useMemo(() => ["1-4", "1-5", "2-4", "2-5", "2-6", "5-2", "5-3", "6-8", "6-9"], []);
+
   const toggleSeat = (seatId: string) => {
-    if (OCCUPIED.includes(seatId)) return;
+    if (occupiedSeats.includes(seatId)) return;
 
     setSelectedSeats((prev) => {
       let newSelection;
@@ -47,14 +47,12 @@ export function SeatSelector({ onBooking }: SeatSelectorProps) {
 
   return (
     <div className="w-full max-w-4xl mx-auto py-8 px-4">
-      {/* Screen Visualization */}
       <div className="mb-20 relative">
         <div className="h-1.5 w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent rounded-full shadow-[0_0_20px_rgba(255,165,0,0.3)]" />
         <div className="h-24 w-full bg-gradient-to-b from-primary/10 to-transparent blur-3xl -mt-2 opacity-40" />
         <p className="text-center text-[10px] text-primary font-bold tracking-[0.5em] uppercase mt-4 animate-pulse">Cinematic Screen</p>
       </div>
 
-      {/* Seats Grid */}
       <div className="flex flex-col gap-4 items-center mb-12">
         {Array.from({ length: ROWS }).map((_, row) => (
           <div key={row} className="flex gap-2 items-center">
@@ -63,7 +61,7 @@ export function SeatSelector({ onBooking }: SeatSelectorProps) {
             <div className="flex gap-2">
               {Array.from({ length: COLS }).map((_, col) => {
                 const seatId = `${row}-${col}`;
-                const isOccupied = OCCUPIED.includes(seatId);
+                const isOccupied = occupiedSeats.includes(seatId);
                 const isSelected = selectedSeats.includes(seatId);
                 const isAisle = col === 2 || col === 9;
 
@@ -109,9 +107,7 @@ export function SeatSelector({ onBooking }: SeatSelectorProps) {
         ))}
       </div>
 
-      {/* Info & Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end border-t border-white/5 pt-12">
-        {/* Legend */}
         <div className="flex flex-wrap gap-6 p-6 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm self-start">
           <div className="flex items-center gap-3">
             <div className="w-5 h-6 rounded-t-md bg-secondary/40 border border-white/5" />
@@ -129,7 +125,6 @@ export function SeatSelector({ onBooking }: SeatSelectorProps) {
           </div>
         </div>
 
-        {/* Selected Summary Card */}
         <AnimatePresence>
           {selectedSeats.length > 0 && (
             <motion.div
@@ -143,15 +138,15 @@ export function SeatSelector({ onBooking }: SeatSelectorProps) {
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <h4 className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-1">Selected Seats</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedSeats.map(id => {
+                  <div className="flex flex-wrap gap-1">
+                    {selectedSeats.map((id, index) => {
                       const [r, c] = id.split('-').map(Number);
                       return (
                         <span key={id} className="text-xl font-display text-white">
-                          {String.fromCharCode(65 + r)}{c + 1}
+                          {String.fromCharCode(65 + r)}{c + 1}{index < selectedSeats.length - 1 ? "," : ""}
                         </span>
                       );
-                    }).reduce((prev: any, curr: any) => [prev, <span key={`sep-${curr.key}`} className="text-white/20">, </span>, curr])}
+                    })}
                   </div>
                 </div>
                 <div className="text-right">

@@ -217,7 +217,7 @@ export function MovieDetail() {
                       </DialogHeader>
                       
                       <div className="relative">
-                        <SeatSelector onBooking={(count, total) => setBookingSummary({ count, total })} />
+                        <SeatSelector onBooking={(count: number, total: number) => setBookingSummary({ count, total })} />
                       </div>
 
                       <div className="flex flex-col md:flex-row items-center justify-between gap-8 border-t border-white/5 pt-12 mt-12 bg-white/[0.02] -mx-12 -mb-12 p-12">
