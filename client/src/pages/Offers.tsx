@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { motion } from "framer-motion";
-import { Gift, Percent, CreditCard, Users, Star, Ticket, ChevronRight, Info } from "lucide-react";
+import { Gift, Percent, CreditCard, Users, Star, ChevronRight, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const offers = [
