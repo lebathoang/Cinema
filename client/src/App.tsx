@@ -11,6 +11,7 @@ import { MoviesList } from "@/pages/MoviesList";
 import { Cinemas } from "@/pages/Cinemas";
 import { CinemaSchedule } from "@/pages/CinemaSchedule";
 import { Offers } from "@/pages/Offers";
+import { Profile } from "@/pages/Profile";
 
 function Router() {
   return (
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/cinemas" component={Cinemas} />
       <Route path="/cinema/:id" component={CinemaSchedule} />
       <Route path="/offers" component={Offers} />
+      <Route path="/profile" component={Profile} />
       <Route component={NotFound} />
     </Switch>
   );
