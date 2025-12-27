@@ -155,7 +155,7 @@ export function ClaimOffer() {
               </motion.div>
             )}
           </div>
-        </div>
+        </motion.div>
       </main>
     </div>
   );
