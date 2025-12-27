@@ -50,10 +50,12 @@ export function Navbar() {
           >
             <Search className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-2 right-2 h-2 w-2 bg-primary rounded-full" />
-          </Button>
+          <Link href="/notifications">
+            <Button variant="ghost" size="icon" className={`hover:text-white relative ${location === '/notifications' ? 'text-primary' : 'text-muted-foreground'}`}>
+              <Bell className="h-5 w-5" />
+              <span className="absolute top-2 right-2 h-2 w-2 bg-primary rounded-full" />
+            </Button>
+          </Link>
           <Link href="/profile">
             <Button variant="ghost" size="icon" className={`hover:text-white ${location === '/profile' ? 'text-primary' : 'text-muted-foreground'}`}>
               <User className="h-5 w-5" />

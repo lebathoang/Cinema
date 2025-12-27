@@ -12,6 +12,9 @@ import { Cinemas } from "@/pages/Cinemas";
 import { CinemaSchedule } from "@/pages/CinemaSchedule";
 import { Offers } from "@/pages/Offers";
 import { Profile } from "@/pages/Profile";
+import { Settings } from "@/pages/Settings";
+import { Notifications } from "@/pages/Notifications";
+import { TicketInfo } from "@/pages/TicketInfo";
 
 function Router() {
   return (
@@ -24,6 +27,9 @@ function Router() {
       <Route path="/cinema/:id" component={CinemaSchedule} />
       <Route path="/offers" component={Offers} />
       <Route path="/profile" component={Profile} />
+      <Route path="/settings" component={Settings} />
+      <Route path="/notifications" component={Notifications} />
+      <Route path="/ticket/:id" component={TicketInfo} />
       <Route component={NotFound} />
     </Switch>
   );

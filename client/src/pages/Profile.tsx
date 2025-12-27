@@ -15,8 +15,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Link, useLocation } from "wouter";
 
 export function Profile() {
+  const [location] = useLocation();
   const user = {
     name: "Alex Rivera",
     email: "alex.rivera@example.com",
@@ -87,22 +89,23 @@ export function Profile() {
 
                 <div className="space-y-2">
                   {[
-                    { icon: User, label: "Personal Info", active: true },
-                    { icon: CreditCard, label: "Payment Methods" },
-                    { icon: Bell, label: "Notifications" },
-                    { icon: Settings, label: "Settings" },
+                    { icon: User, label: "Personal Info", active: location === "/profile", path: "/profile" },
+                    { icon: CreditCard, label: "Payment Methods", path: "/profile" },
+                    { icon: Bell, label: "Notifications", path: "/notifications" },
+                    { icon: Settings, label: "Settings", active: location === "/settings", path: "/settings" },
                   ].map((item, i) => (
-                    <button 
-                      key={i}
-                      className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${
-                        item.active 
-                          ? "bg-primary text-primary-foreground font-bold" 
-                          : "text-muted-foreground hover:bg-white/5"
-                      }`}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span className="text-sm">{item.label}</span>
-                    </button>
+                    <Link key={i} href={item.path}>
+                      <button 
+                        className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all mb-2 ${
+                          item.active 
+                            ? "bg-primary text-primary-foreground font-bold" 
+                            : "text-muted-foreground hover:bg-white/5"
+                        }`}
+                      >
+                        <item.icon className="h-5 w-5" />
+                        <span className="text-sm">{item.label}</span>
+                      </button>
+                    </Link>
                   ))}
                   <button className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-red-500 hover:bg-red-500/10 transition-all mt-4">
                     <LogOut className="h-5 w-5" />
@@ -176,10 +179,12 @@ export function Profile() {
                       </div>
                     </div>
 
-                    <Button variant="outline" className="rounded-xl border-white/10 hover:bg-white/5 text-white gap-2 font-bold h-12 px-6">
-                      TICKET INFO
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+                    <Link href={`/ticket/${booking.id}`}>
+                      <Button variant="outline" className="rounded-xl border-white/10 hover:bg-white/5 text-white gap-2 font-bold h-12 px-6">
+                        TICKET INFO
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </Link>
                   </motion.div>
                 ))}
               </div>
