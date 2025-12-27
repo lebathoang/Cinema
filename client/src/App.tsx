@@ -16,6 +16,7 @@ import { Settings } from "@/pages/Settings";
 import { Notifications } from "@/pages/Notifications";
 import { TicketInfo } from "@/pages/TicketInfo";
 import { SearchResults } from "@/pages/SearchResults";
+import { ClaimOffer } from "@/pages/ClaimOffer";
 
 function Router() {
   return (
@@ -32,6 +33,7 @@ function Router() {
       <Route path="/notifications" component={Notifications} />
       <Route path="/ticket/:id" component={TicketInfo} />
       <Route path="/search" component={SearchResults} />
+      <Route path="/claim-offer/:id" component={ClaimOffer} />
       <Route component={NotFound} />
     </Switch>
   );

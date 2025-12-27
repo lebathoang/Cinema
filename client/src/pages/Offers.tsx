@@ -2,6 +2,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { motion } from "framer-motion";
 import { Gift, Percent, CreditCard, Users, Star, ChevronRight, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 
 const offers = [
   {
@@ -115,10 +116,12 @@ export function Offers() {
                     {offer.terms}
                   </div>
 
-                  <Button variant="outline" className="rounded-xl border-white/10 hover:bg-white/5 text-white w-full md:w-auto h-12 px-8 font-bold group/btn">
-                    CLAIM OFFER
-                    <ChevronRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
-                  </Button>
+                  <Link href={`/claim-offer/${offer.id}`}>
+                    <Button variant="outline" className="rounded-xl border-white/10 hover:bg-white/5 text-white w-full md:w-auto h-12 px-8 font-bold group/btn">
+                      CLAIM OFFER
+                      <ChevronRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </motion.div>
