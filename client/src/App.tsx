@@ -10,6 +10,7 @@ import { Checkout } from "@/pages/Checkout";
 import { MoviesList } from "@/pages/MoviesList";
 import { Cinemas } from "@/pages/Cinemas";
 import { CinemaSchedule } from "@/pages/CinemaSchedule";
+import { Offers } from "@/pages/Offers";
 
 function Router() {
   return (
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/checkout" component={Checkout} />
       <Route path="/cinemas" component={Cinemas} />
       <Route path="/cinema/:id" component={CinemaSchedule} />
+      <Route path="/offers" component={Offers} />
       <Route component={NotFound} />
     </Switch>
   );
