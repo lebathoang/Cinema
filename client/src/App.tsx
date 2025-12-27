@@ -15,6 +15,7 @@ import { Profile } from "@/pages/Profile";
 import { Settings } from "@/pages/Settings";
 import { Notifications } from "@/pages/Notifications";
 import { TicketInfo } from "@/pages/TicketInfo";
+import { SearchResults } from "@/pages/SearchResults";
 
 function Router() {
   return (
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/settings" component={Settings} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/ticket/:id" component={TicketInfo} />
+      <Route path="/search" component={SearchResults} />
       <Route component={NotFound} />
     </Switch>
   );

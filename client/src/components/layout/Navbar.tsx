@@ -16,6 +16,16 @@ export function Navbar() {
   const [location] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [, setLocation] = useLocation();
+
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      setLocation(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setIsSearchOpen(false);
+      setSearchQuery("");
+    }
+  };
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-xl border-b border-white/5">
@@ -94,13 +104,25 @@ export function Navbar() {
           <DialogHeader className="mb-8">
             <DialogTitle className="text-3xl font-display text-white uppercase tracking-tight">Quick Search</DialogTitle>
           </DialogHeader>
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground group-focus-within:text-primary transition-colors" />
-            <Input 
-              placeholder="Search movies, cinemas, or genres..." 
-              className="pl-14 h-16 bg-white/5 border-white/10 rounded-2xl focus:border-primary/50 transition-all text-lg text-white placeholder:text-white/20"
-              autoFocus
-            />
+          <div className="flex gap-3">
+            <div className="relative flex-1 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input 
+                placeholder="Search movies, cinemas, or genres..." 
+                className="pl-14 h-16 bg-white/5 border-white/10 rounded-2xl focus:border-primary/50 transition-all text-lg text-white placeholder:text-white/20"
+                autoFocus
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              />
+            </div>
+            <Button 
+              size="lg" 
+              className="h-16 px-8 rounded-2xl bg-primary text-primary-foreground font-bold hover:bg-primary/90"
+              onClick={handleSearch}
+            >
+              SEARCH
+            </Button>
           </div>
           <div className="mt-8 space-y-4">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Popular Searches</p>
