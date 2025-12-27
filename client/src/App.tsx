@@ -17,6 +17,7 @@ import { Notifications } from "@/pages/Notifications";
 import { TicketInfo } from "@/pages/TicketInfo";
 import { SearchResults } from "@/pages/SearchResults";
 import { ClaimOffer } from "@/pages/ClaimOffer";
+import { BookingHistory } from "@/pages/BookingHistory";
 
 function Router() {
   return (
@@ -34,6 +35,7 @@ function Router() {
       <Route path="/ticket/:id" component={TicketInfo} />
       <Route path="/search" component={SearchResults} />
       <Route path="/claim-offer/:id" component={ClaimOffer} />
+      <Route path="/bookings" component={BookingHistory} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -146,7 +146,9 @@ export function Profile() {
             <section className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-display text-white uppercase tracking-tight">Recent Bookings</h2>
-                <Button variant="link" className="text-primary font-bold">View All</Button>
+                <Link href="/bookings">
+                  <Button variant="link" className="text-primary font-bold">View All</Button>
+                </Link>
               </div>
 
               <div className="space-y-4">
