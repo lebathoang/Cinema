@@ -139,7 +139,22 @@ export function TicketInfo() {
                 <Button className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-xl shadow-primary/20 gap-2">
                   <Download className="h-5 w-5" /> DOWNLOAD PDF
                 </Button>
-                <Button variant="outline" className="w-full h-14 rounded-2xl border-white/10 hover:bg-white/5 text-white font-bold gap-2">
+                <Button 
+                  variant="outline" 
+                  className="w-full h-14 rounded-2xl border-white/10 hover:bg-white/5 text-white font-bold gap-2"
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator.share({
+                        title: `My Ticket for ${ticket.movie}`,
+                        text: `Check out my booking for ${ticket.movie} at ${ticket.cinema}!`,
+                        url: window.location.href,
+                      }).catch(console.error);
+                    } else {
+                      navigator.clipboard.writeText(window.location.href);
+                      alert("Ticket link copied to clipboard!");
+                    }
+                  }}
+                >
                   <Share2 className="h-5 w-5" /> SHARE TICKET
                 </Button>
               </div>

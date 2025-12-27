@@ -77,7 +77,15 @@ export function HeroCarousel({ movies }: HeroCarouselProps) {
                 Book Tickets
               </Button>
             </Link>
-            <Button size="lg" variant="outline" className="border-white/20 hover:bg-white/10 text-white rounded-full h-12 px-8">
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="border-white/20 hover:bg-white/10 text-white rounded-full h-12 px-8"
+              onClick={() => {
+                const trailerUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"; // Placeholder trailer
+                window.open(trailerUrl, "_blank");
+              }}
+            >
               <Play className="mr-2 h-5 w-5" />
               Watch Trailer
             </Button>

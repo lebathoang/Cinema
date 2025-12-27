@@ -57,11 +57,35 @@ export function MovieDetail() {
             {movie.title}
           </h1>
           <div className="flex flex-wrap gap-4">
-            <Button size="lg" variant="outline" className="rounded-full border-white/20 hover:bg-white/10 text-white gap-2 backdrop-blur-md">
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="rounded-full border-white/20 hover:bg-white/10 text-white gap-2 backdrop-blur-md"
+              onClick={() => {
+                const trailerUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"; // Placeholder trailer
+                window.open(trailerUrl, "_blank");
+              }}
+            >
               <Play className="h-4 w-4 fill-white" />
               Watch Trailer
             </Button>
-            <Button size="lg" variant="ghost" className="rounded-full text-white/70 hover:text-white gap-2">
+            <Button 
+              size="lg" 
+              variant="ghost" 
+              className="rounded-full text-white/70 hover:text-white gap-2"
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: movie.title,
+                    text: `Check out ${movie.title} at Cineplex Premiere!`,
+                    url: window.location.href,
+                  }).catch(console.error);
+                } else {
+                  navigator.clipboard.writeText(window.location.href);
+                  alert("Link copied to clipboard!");
+                }
+              }}
+            >
               <Share2 className="h-4 w-4" />
               Share
             </Button>
