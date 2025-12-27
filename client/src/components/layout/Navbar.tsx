@@ -25,7 +25,7 @@ export function Navbar() {
         <div className="hidden md:flex items-center gap-8">
           <Link href="/"><a className={`text-sm font-medium transition-colors hover:text-primary ${location === '/' ? 'text-primary' : 'text-muted-foreground'}`}>Home</a></Link>
           <Link href="/movies"><a className={`text-sm font-medium transition-colors hover:text-primary ${location.startsWith('/movies') ? 'text-primary' : 'text-muted-foreground'}`}>Movies</a></Link>
-          <a href="#" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">Cinemas</a>
+          <Link href="/cinemas"><a className={`text-sm font-medium transition-colors hover:text-primary ${location === '/cinemas' ? 'text-primary' : 'text-muted-foreground'}`}>Cinemas</a></Link>
           <a href="#" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">Offers</a>
         </div>
 
