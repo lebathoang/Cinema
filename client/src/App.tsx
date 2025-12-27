@@ -18,6 +18,9 @@ import { TicketInfo } from "@/pages/TicketInfo";
 import { SearchResults } from "@/pages/SearchResults";
 import { ClaimOffer } from "@/pages/ClaimOffer";
 import { BookingHistory } from "@/pages/BookingHistory";
+import { UserMovies } from "@/pages/UserMovies";
+import { Wishlist } from "@/pages/Wishlist";
+import { Reviews } from "@/pages/Reviews";
 
 function Router() {
   return (
@@ -36,6 +39,9 @@ function Router() {
       <Route path="/search" component={SearchResults} />
       <Route path="/claim-offer/:id" component={ClaimOffer} />
       <Route path="/bookings" component={BookingHistory} />
+      <Route path="/my-movies" component={UserMovies} />
+      <Route path="/wishlist" component={Wishlist} />
+      <Route path="/my-reviews" component={Reviews} />
       <Route component={NotFound} />
     </Switch>
   );

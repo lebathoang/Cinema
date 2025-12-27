@@ -122,23 +122,24 @@ export function Profile() {
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
-                { label: "Total Movies", value: "24", icon: Ticket },
-                { label: "Wishlist", value: "12", icon: Heart },
-                { label: "Reviews", value: "8", icon: Star },
+                { label: "Total Movies", value: "24", icon: Ticket, path: "/my-movies" },
+                { label: "Wishlist", value: "12", icon: Heart, path: "/wishlist" },
+                { label: "Reviews", value: "8", icon: Star, path: "/my-reviews" },
               ].map((stat, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="bg-card border border-white/10 rounded-[2rem] p-8 flex flex-col items-center text-center group hover:border-primary/50 transition-all"
-                >
-                  <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <stat.icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <p className="text-muted-foreground text-xs uppercase tracking-widest font-bold mb-1">{stat.label}</p>
-                  <p className="text-3xl font-display text-white">{stat.value}</p>
-                </motion.div>
+                <Link key={i} href={stat.path}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="bg-card border border-white/10 rounded-[2rem] p-8 flex flex-col items-center text-center group hover:border-primary/50 transition-all cursor-pointer"
+                  >
+                    <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                      <stat.icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-widest font-bold mb-1">{stat.label}</p>
+                    <p className="text-3xl font-display text-white">{stat.value}</p>
+                  </motion.div>
+                </Link>
               ))}
             </div>
 
