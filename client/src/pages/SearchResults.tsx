@@ -2,7 +2,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { movies } from "@/lib/data";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { MovieCard } from "@/components/movies/MovieCard";
+import { MovieGrid } from "@/components/movies/MovieGrid";
 import { Search } from "lucide-react";
 
 export function SearchResults() {
@@ -30,18 +30,7 @@ export function SearchResults() {
         </div>
 
         {filteredMovies.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {filteredMovies.map((movie, idx) => (
-              <motion.div
-                key={movie.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
-              >
-                <MovieCard movie={movie} />
-              </motion.div>
-            ))}
-          </div>
+          <MovieGrid title="" movies={filteredMovies} />
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
             <div className="h-20 w-20 rounded-full bg-white/5 flex items-center justify-center">
