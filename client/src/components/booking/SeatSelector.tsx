@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { Armchair, ChevronRight, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 
 const ROWS = 8;
 const COLS = 12;
@@ -18,6 +19,7 @@ interface SeatSelectorProps {
 export function SeatSelector({ onBooking }: SeatSelectorProps) {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const toggleSeat = (seatId: string) => {
     if (OCCUPIED.includes(seatId)) return;
@@ -163,7 +165,10 @@ export function SeatSelector({ onBooking }: SeatSelectorProps) {
                 <span>Ticket price includes 10% VAT and service charge.</span>
               </div>
 
-              <Button className="w-full h-14 rounded-xl bg-primary text-primary-foreground font-black text-lg hover:bg-primary/90 transition-all active:scale-[0.98] group">
+              <Button 
+                className="w-full h-14 rounded-xl bg-primary text-primary-foreground font-black text-lg hover:bg-primary/90 transition-all active:scale-[0.98] group"
+                onClick={() => setLocation("/checkout")}
+              >
                 PROCEED TO CHECKOUT
                 <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>
