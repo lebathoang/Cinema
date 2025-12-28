@@ -178,7 +178,31 @@ export function MoviesList() {
 
         {/* Results */}
         {filteredMovies.length > 0 ? (
-          <MovieGrid title={searchQuery ? `Results for "${searchQuery}"` : "All Movies"} movies={filteredMovies} />
+          <>
+            <MovieGrid title={searchQuery ? `Results for "${searchQuery}"` : "All Movies"} movies={filteredMovies} />
+            
+            {/* Pagination */}
+            <div className="mt-20 flex items-center justify-center gap-2">
+              <Button variant="outline" className="h-12 w-12 rounded-xl border-white/10 text-muted-foreground" disabled>
+                <ChevronRight className="h-5 w-5 rotate-180" />
+              </Button>
+              {[1, 2, 3].map((page) => (
+                <Button 
+                  key={page}
+                  variant={page === 1 ? "default" : "outline"}
+                  className={cn(
+                    "h-12 w-12 rounded-xl font-display text-lg",
+                    page === 1 ? "bg-primary text-primary-foreground" : "border-white/10 text-muted-foreground hover:text-white"
+                  )}
+                >
+                  {page}
+                </Button>
+              ))}
+              <Button variant="outline" className="h-12 w-12 rounded-xl border-white/10 text-muted-foreground">
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+          </>
         ) : (
           <motion.div 
             initial={{ opacity: 0 }}

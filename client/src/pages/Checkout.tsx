@@ -149,13 +149,20 @@ export function Checkout() {
                       <span className="text-muted-foreground">Tickets ({selectedSeats.length}x)</span>
                       <span className="text-white font-medium">${subtotal.toFixed(2)}</span>
                     </div>
+                    <div className="flex justify-between items-center py-2 border-b border-white/5 bg-primary/10 -mx-4 px-4 rounded-xl">
+                      <div className="flex items-center gap-2">
+                        <span className="text-primary font-bold uppercase tracking-widest text-[10px]">Offer Applied</span>
+                        <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded font-black">FIRST10</span>
+                      </div>
+                      <span className="text-primary font-bold">-$5.00</span>
+                    </div>
                     <div className="flex justify-between items-center py-2 border-b border-white/5">
                       <span className="text-muted-foreground">Booking Fee</span>
                       <span className="text-white font-medium">${bookingFee.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between items-center pt-4">
                       <span className="text-xl font-display text-white">Total Amount</span>
-                      <span className="text-3xl font-display text-primary font-bold">${total.toFixed(2)}</span>
+                      <span className="text-3xl font-display text-primary font-bold">${(total - 5).toFixed(2)}</span>
                     </div>
                   </div>
 

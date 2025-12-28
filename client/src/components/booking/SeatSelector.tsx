@@ -46,8 +46,8 @@ export function SeatSelector({ onBooking }: SeatSelectorProps) {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto py-8 px-4">
-      <div className="mb-20 relative">
+    <div className="w-full max-w-4xl mx-auto py-8 px-4 overflow-y-auto max-h-[70vh] scrollbar-hide">
+      <div className="mb-20 relative pt-10">
         <div className="h-1.5 w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent rounded-full shadow-[0_0_20px_rgba(255,165,0,0.3)]" />
         <div className="h-24 w-full bg-gradient-to-b from-primary/10 to-transparent blur-3xl -mt-2 opacity-40" />
         <p className="text-center text-[10px] text-primary font-bold tracking-[0.5em] uppercase mt-4 animate-pulse">Cinematic Screen</p>

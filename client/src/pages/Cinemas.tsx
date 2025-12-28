@@ -59,7 +59,7 @@ export function Cinemas() {
         </div>
 
         {/* Cinema List */}
-        <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 gap-6 mb-12">
           {cinemas.map((cinema, idx) => (
             <motion.div
               key={cinema.id}
@@ -126,6 +126,17 @@ export function Cinemas() {
               </div>
             </motion.div>
           ))}
+        </div>
+
+        {/* Pagination */}
+        <div className="flex items-center justify-center gap-2">
+          <Button variant="outline" className="h-12 w-12 rounded-xl border-white/10 text-muted-foreground" disabled>
+            <ChevronRight className="h-5 w-5 rotate-180" />
+          </Button>
+          <Button variant="default" className="h-12 w-12 rounded-xl bg-primary text-primary-foreground font-display text-lg">1</Button>
+          <Button variant="outline" className="h-12 w-12 rounded-xl border-white/10 text-muted-foreground" disabled>
+            <ChevronRight className="h-5 w-5" />
+          </Button>
         </div>
       </main>
     </div>
