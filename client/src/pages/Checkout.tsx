@@ -1,7 +1,9 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { movies } from "@/lib/data";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 import { 
   CreditCard, 
   Ticket, 
@@ -10,18 +12,29 @@ import {
   Clock, 
   Calendar, 
   ChevronRight,
-  Info
+  Info,
+  Tag,
+  CheckCircle2
 } from "lucide-react";
 import { useLocation } from "wouter";
 
+const OFFERS = [
+  { id: 'FIRST10', title: 'New User Discount', description: 'Get $5 off on your first booking', discount: 5, code: 'FIRST10' },
+  { id: 'WEEKEND', title: 'Weekend Special', description: '15% discount on weekend shows', discount: 3.5, code: 'WEEKEND15' },
+  { id: 'POPCORN', title: 'Combo Deal', description: 'Free small popcorn with this booking', discount: 0, code: 'FREEPOP' },
+];
+
 export function Checkout() {
   const [, setLocation] = useLocation();
+  const [selectedOffer, setSelectedOffer] = useState(OFFERS[0]);
+  
   // Mock data for checkout since we don't have a global state manager yet
   const movie = movies[0]; 
   const selectedSeats = ["H4", "H5"];
   const subtotal = selectedSeats.length * 14.99;
   const bookingFee = 2.50;
-  const total = subtotal + bookingFee;
+  const discount = selectedOffer ? selectedOffer.discount : 0;
+  const total = subtotal + bookingFee - discount;
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -134,6 +147,46 @@ export function Checkout() {
                   </div>
                 </div>
               </div>
+
+              {/* Select Offers Section */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-display text-white uppercase tracking-tight">Available Offers</h3>
+                  <span className="text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/10 px-3 py-1 rounded-full">3 Offers Found</span>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {OFFERS.map((offer) => (
+                    <button 
+                      key={offer.id}
+                      onClick={() => setSelectedOffer(offer)}
+                      className={cn(
+                        "flex items-start gap-4 p-5 rounded-2xl transition-all border text-left relative overflow-hidden group",
+                        selectedOffer?.id === offer.id 
+                          ? "bg-primary/5 border-primary shadow-lg shadow-primary/5" 
+                          : "bg-white/[0.02] border-white/5 hover:border-white/20"
+                      )}
+                    >
+                      {selectedOffer?.id === offer.id && (
+                        <div className="absolute top-0 right-0 p-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                        </div>
+                      )}
+                      <div className={cn(
+                        "h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors",
+                        selectedOffer?.id === offer.id ? "bg-primary/20 text-primary" : "bg-white/5 text-muted-foreground"
+                      )}>
+                        <Tag className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-white font-bold mb-1">{offer.title}</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed mb-3">{offer.description}</p>
+                        <span className="text-[10px] font-black bg-white/10 text-white px-2 py-1 rounded tracking-tighter uppercase">{offer.code}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Right Column: Order Summary */}
@@ -149,20 +202,33 @@ export function Checkout() {
                       <span className="text-muted-foreground">Tickets ({selectedSeats.length}x)</span>
                       <span className="text-white font-medium">${subtotal.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b border-white/5 bg-primary/10 -mx-4 px-4 rounded-xl">
-                      <div className="flex items-center gap-2">
-                        <span className="text-primary font-bold uppercase tracking-widest text-[10px]">Offer Applied</span>
-                        <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded font-black">FIRST10</span>
-                      </div>
-                      <span className="text-primary font-bold">-$5.00</span>
-                    </div>
+                    
+                    <AnimatePresence mode="wait">
+                      {selectedOffer && (
+                        <motion.div 
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="flex justify-between items-center py-2 border-b border-white/5 bg-primary/10 -mx-4 px-4 rounded-xl mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-primary font-bold uppercase tracking-widest text-[10px]">Offer Applied</span>
+                              <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded font-black">{selectedOffer.code}</span>
+                            </div>
+                            <span className="text-primary font-bold">-{discount > 0 ? `$${discount.toFixed(2)}` : 'FREE'}</span>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                     <div className="flex justify-between items-center py-2 border-b border-white/5">
                       <span className="text-muted-foreground">Booking Fee</span>
                       <span className="text-white font-medium">${bookingFee.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between items-center pt-4">
                       <span className="text-xl font-display text-white">Total Amount</span>
-                      <span className="text-3xl font-display text-primary font-bold">${(total - 5).toFixed(2)}</span>
+                      <span className="text-3xl font-display text-primary font-bold">${total.toFixed(2)}</span>
                     </div>
                   </div>
 
