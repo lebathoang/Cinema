@@ -21,11 +21,21 @@ import { BookingHistory } from "@/pages/BookingHistory";
 import { UserMovies } from "@/pages/UserMovies";
 import { Wishlist } from "@/pages/Wishlist";
 import { Reviews } from "@/pages/Reviews";
+import { Login } from "@/pages/Login";
+import { Register } from "@/pages/Register";
+import { Logout } from "@/pages/Logout";
+import { ForgotPassword } from "@/pages/ForgotPassword";
+import { ChangePassword } from "@/pages/ChangePassword";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
+      <Route path="/logout" component={Logout} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/change-password" component={ChangePassword} />
       <Route path="/movies" component={MoviesList} />
       <Route path="/movie/:id" component={MovieDetail} />
       <Route path="/checkout" component={Checkout} />
