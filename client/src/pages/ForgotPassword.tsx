@@ -71,13 +71,15 @@ export function ForgotPassword() {
                 </div>
               )}
 
-              <div className="pt-4 flex justify-center">
-                <Link href="/login">
-                  <span className="text-muted-foreground hover:text-white flex items-center gap-2 text-sm font-bold uppercase tracking-widest transition-colors cursor-pointer">
-                    <ArrowLeft className="h-4 w-4" /> Back to Login
-                  </span>
+                <Link href="/reset-password">
+                  <Button 
+                    type="button"
+                    variant="link"
+                    className="w-full mt-4 text-[10px] text-primary/50 hover:text-primary uppercase tracking-[0.2em] font-bold"
+                  >
+                    Simulate: Click Reset Link
+                  </Button>
                 </Link>
-              </div>
             </CardContent>
           </Card>
         </motion.div>
