@@ -1,5 +1,4 @@
 import { Navbar } from "@/components/layout/Navbar";
-import { motion } from "framer-motion";
 import { 
   User, 
   Bell, 
@@ -9,12 +8,13 @@ import {
   Moon, 
   ChevronRight,
   CreditCard,
-  Eye,
-  Languages
+  Languages,
+  LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Link } from "wouter";
 
 export function Settings() {
   const sections = [
@@ -22,14 +22,14 @@ export function Settings() {
       title: "Account",
       items: [
         { icon: User, label: "Profile Information", desc: "Manage your personal details and avatar" },
-        { icon: Lock, label: "Password & Security", desc: "Change your password and enable 2FA" },
+        { icon: Lock, label: "Password & Security", desc: "Change your password and enable 2FA", href: "/change-password" },
         { icon: CreditCard, label: "Payment Methods", desc: "Manage your saved cards and billing" }
       ]
     },
     {
       title: "Preferences",
       items: [
-        { icon: Bell, label: "Notifications", desc: "Choose what updates you want to receive", toggle: true },
+        { icon: Bell, label: "Notifications", desc: "Choose what updates you want to receive", toggle: true, checked: false },
         { icon: Moon, label: "Dark Mode", desc: "Keep the cinephile aesthetic", toggle: true, checked: true },
         { icon: Languages, label: "Language", desc: "English (US)" }
       ]
@@ -60,25 +60,47 @@ export function Settings() {
               <Card className="bg-card border-white/10 rounded-3xl overflow-hidden">
                 <CardContent className="p-0">
                   {section.items.map((item, i) => (
-                    <div 
-                      key={i} 
-                      className={`flex items-center justify-between p-6 hover:bg-white/5 transition-colors ${
-                        i !== section.items.length - 1 ? "border-b border-white/5" : ""
-                      }`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center">
-                          <item.icon className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <p className="text-white font-medium">{item.label}</p>
-                          <p className="text-xs text-muted-foreground">{item.desc}</p>
-                        </div>
-                      </div>
-                      {item.toggle ? (
-                        <Switch checked={item.checked} />
+                    <div key={i}>
+                      {item.href ? (
+                        <Link href={item.href}>
+                          <div 
+                            className={`flex items-center justify-between p-6 hover:bg-white/5 transition-colors cursor-pointer ${
+                              i !== section.items.length - 1 ? "border-b border-white/5" : ""
+                            }`}
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center">
+                                <item.icon className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                              <div>
+                                <p className="text-white font-medium">{item.label}</p>
+                                <p className="text-xs text-muted-foreground">{item.desc}</p>
+                              </div>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-white/20" />
+                          </div>
+                        </Link>
                       ) : (
-                        <ChevronRight className="h-5 w-5 text-white/20" />
+                        <div 
+                          className={`flex items-center justify-between p-6 hover:bg-white/5 transition-colors ${
+                            i !== section.items.length - 1 ? "border-b border-white/5" : ""
+                          }`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center">
+                              <item.icon className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            <div>
+                              <p className="text-white font-medium">{item.label}</p>
+                              <p className="text-xs text-muted-foreground">{item.desc}</p>
+                            </div>
+                          </div>
+                          {item.toggle ? (
+                            <Switch checked={item.checked} />
+                          ) : (
+                            <ChevronRight className="h-5 w-5 text-white/20" />
+                          )}
+                        </div>
                       )}
                     </div>
                   ))}
@@ -86,6 +108,21 @@ export function Settings() {
               </Card>
             </div>
           ))}
+          
+          <div className="pt-8">
+            <Link href="/logout">
+              <Button variant="ghost" className="w-full justify-start h-16 rounded-[2rem] text-red-500 hover:text-red-400 hover:bg-red-500/10 gap-4 px-8 group">
+                <div className="h-10 w-10 rounded-xl bg-red-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <LogOut className="h-5 w-5" />
+                </div>
+                <div className="text-left">
+                  <p className="font-bold uppercase tracking-widest text-xs">Sign Out</p>
+                  <p className="text-[10px] opacity-70 uppercase tracking-tighter">End your current session</p>
+                </div>
+                <ChevronRight className="ml-auto h-5 w-5 opacity-20 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </main>
     </div>
