@@ -96,7 +96,7 @@ export function Settings() {
                             </div>
                           </div>
                           {item.toggle ? (
-                            <Switch checked={item.checked} />
+                            <Switch checked={!!item.checked} />
                           ) : (
                             <ChevronRight className="h-5 w-5 text-white/20" />
                           )}

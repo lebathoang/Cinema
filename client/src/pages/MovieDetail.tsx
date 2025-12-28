@@ -164,6 +164,63 @@ export function MovieDetail() {
                   ))}
                 </div>
               </TabsContent>
+
+              <TabsContent value="reviews" className="pt-8 animate-in fade-in slide-in-from-bottom-2">
+                <div className="space-y-8">
+                  <div className="flex items-center justify-between mb-8">
+                    <div>
+                      <h3 className="text-3xl font-display text-white uppercase tracking-tight">User Reviews</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star key={s} className="h-4 w-4 text-primary fill-primary" />
+                          ))}
+                        </div>
+                        <span className="text-sm text-muted-foreground font-bold uppercase tracking-widest ml-2">4.9 / 5.0</span>
+                      </div>
+                    </div>
+                    <Button className="rounded-full bg-white/5 hover:bg-white/10 text-white border border-white/10 px-8">WRITE A REVIEW</Button>
+                  </div>
+
+                  {[
+                    { name: "Sarah J.", date: "2 days ago", rating: 5, comment: "Absolutely breathtaking. The cinematography and sound design are on another level. A must-watch in IMAX!", color: "bg-blue-500/10" },
+                    { name: "Michael R.", date: "1 week ago", rating: 4, comment: "Intense and gripping from start to finish. Some plot points felt a bit rushed, but overall a masterpiece.", color: "bg-green-500/10" },
+                    { name: "David L.", date: "Oct 15", rating: 5, comment: "I've seen it three times now and it gets better every time. Nolan has done it again.", color: "bg-purple-500/10" },
+                    { name: "Elena P.", date: "Oct 12", rating: 5, comment: "The soundtrack is hauntingly beautiful. I haven't been this moved by a movie in years.", color: "bg-red-500/10" }
+                  ].map((rev, i) => (
+                    <motion.div 
+                      key={i} 
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.1 }}
+                      className="p-8 rounded-[2.5rem] bg-card border border-white/5 space-y-4 hover:border-primary/20 transition-all"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-4">
+                          <div className={`h-12 w-12 rounded-2xl flex items-center justify-center text-primary font-bold font-display text-xl border border-primary/20 ${rev.color}`}>
+                            {rev.name[0]}
+                          </div>
+                          <div>
+                            <h4 className="text-white font-bold">{rev.name}</h4>
+                            <div className="flex mt-1">
+                              {Array.from({ length: 5 }).map((_, j) => (
+                                <Star key={j} className={j < rev.rating ? "h-3 w-3 text-primary fill-primary" : "h-3 w-3 text-white/10"} />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full">{rev.date}</span>
+                      </div>
+                      <p className="text-gray-400 leading-relaxed italic text-lg">"{rev.comment}"</p>
+                    </motion.div>
+                  ))}
+
+                  <Button variant="ghost" className="w-full py-12 text-muted-foreground hover:text-white uppercase tracking-[0.4em] text-[10px] font-bold group">
+                    LOAD MORE REVIEWS <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </div>
+              </TabsContent>
             </Tabs>
           </div>
 
