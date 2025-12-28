@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import NotFound from "@/pages/not-found";
+import { motion } from "framer-motion";
 
 export function MovieDetail() {
   const params = useParams();
