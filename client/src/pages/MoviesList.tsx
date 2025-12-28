@@ -2,7 +2,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { MovieGrid } from "@/components/movies/MovieGrid";
 import { movies } from "@/lib/data";
 import { Input } from "@/components/ui/input";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { Search, SlidersHorizontal, X, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
