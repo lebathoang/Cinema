@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Search, Menu, User, Ticket, Bell, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,14 @@ export function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -52,9 +61,9 @@ export function Navbar() {
 
         {/* Actions */}
         <div className="hidden md:flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="text-muted-foreground hover:text-white"
             onClick={() => setIsSearchOpen(true)}
           >
@@ -66,11 +75,24 @@ export function Navbar() {
               <span className="absolute top-2 right-2 h-2 w-2 bg-primary rounded-full" />
             </Button>
           </Link>
-          <Link href="/profile">
-            <Button variant="ghost" size="icon" className={`hover:text-white ${location === '/profile' ? 'text-primary' : 'text-muted-foreground'}`}>
-              <User className="h-5 w-5" />
-            </Button>
-          </Link>
+          {user ? (
+            <Link href="/profile">
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`hover:text-white ${location === "/profile" ? "text-primary" : "text-muted-foreground"
+                  }`}
+              >
+                <User className="h-5 w-5" />
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/login">
+              <Button className="rounded-xl font-semibold cursor-pointer">
+                Login
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Mobile Nav */}
@@ -107,8 +129,8 @@ export function Navbar() {
           <div className="flex gap-3">
             <div className="relative flex-1 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground group-focus-within:text-primary transition-colors" />
-              <Input 
-                placeholder="Search movies, cinemas, or genres..." 
+              <Input
+                placeholder="Search movies, cinemas, or genres..."
                 className="pl-14 h-16 bg-white/5 border-white/10 rounded-2xl focus:border-primary/50 transition-all text-lg text-white placeholder:text-white/20"
                 autoFocus
                 value={searchQuery}
@@ -116,8 +138,8 @@ export function Navbar() {
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
             </div>
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="h-16 px-8 rounded-2xl bg-primary text-primary-foreground font-bold hover:bg-primary/90"
               onClick={handleSearch}
             >

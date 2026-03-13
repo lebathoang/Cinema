@@ -1,3 +1,5 @@
+"use client";
+
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -5,13 +7,42 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Mail, Lock, User, ArrowRight, Github } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { registerSchema, RegisterFormData } from "@/schema/registerSchema";
+import axios from "axios";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export function Register() {
-  const [, setLocation] = useLocation();
 
-  const handleRegister = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLocation("/");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+  });
+
+  const [, setLocation] = useLocation();
+  const [successModal, setSuccessModal] = useState(false);
+  const [showCheckMail, setShowCheckMail] = useState(false);
+
+  const onSubmit = async (data: RegisterFormData) => {
+    try {
+      await axios.post("http://localhost:5000/api/auth/register", data);
+      setShowCheckMail(true)
+
+      // setSuccessModal(true);
+    } catch (error) {
+      console.log(error);
+      alert("Email already exists");
+    }
   };
 
   return (
@@ -31,40 +62,58 @@ export function Register() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-8 space-y-6">
-              <form onSubmit={handleRegister} className="space-y-4">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-2">
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input 
-                      placeholder="Full Name" 
+                    <Input
+                      {...register("fullname")}
+                      placeholder="Full Name"
                       className="bg-white/5 border-white/10 h-14 pl-12 rounded-2xl focus:border-primary transition-all"
                       data-testid="input-name"
                     />
+                    {errors.fullname && (
+                      <p className="text-red-500 text-sm">
+                        {errors.fullname.message}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input 
-                      placeholder="Email Address" 
+                    <Input
+                      {...register("email")}
+                      placeholder="Email Address"
                       className="bg-white/5 border-white/10 h-14 pl-12 rounded-2xl focus:border-primary transition-all"
                       data-testid="input-email"
                     />
+                    {errors.email && (
+                      <p className="text-red-500 text-sm">
+                        {errors.email.message}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input 
-                      type="password" 
-                      placeholder="Password" 
+                    <Input
+                      {...register("password")}
+                      type="password"
+                      placeholder="Password"
                       className="bg-white/5 border-white/10 h-14 pl-12 rounded-2xl focus:border-primary transition-all"
                       data-testid="input-password"
                     />
+                    {errors.password && (
+                      <p className="text-red-500 text-sm">
+                        {errors.password.message}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-bold text-lg hover:bg-primary/90 shadow-xl shadow-primary/20 group mt-4"
                   data-testid="button-register"
                 >
@@ -81,6 +130,38 @@ export function Register() {
               </p>
             </CardContent>
           </Card>
+          <Dialog open={successModal} onOpenChange={setSuccessModal}>
+            <DialogContent className="text-center">
+              <DialogHeader>
+                <DialogTitle className="text-2xl text-green-500">
+                  ✔ Registration Successful
+                </DialogTitle>
+              </DialogHeader>
+
+              <p className="text-muted-foreground">
+                Your account has been created successfully.
+              </p>
+
+              <Button
+                className="mt-4 w-full"
+                onClick={() => setLocation("/login")}
+              >
+                Go to Login
+              </Button>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={showCheckMail} onOpenChange={setShowCheckMail}>
+            <DialogContent className="text-center">
+              <DialogTitle className="text-xl">
+                📩 Check your email
+              </DialogTitle>
+
+              <p className="text-muted-foreground">
+                We have sent an activation link to your email.
+                Please activate your account.
+              </p>
+            </DialogContent>
+          </Dialog>
         </motion.div>
       </main>
     </div>

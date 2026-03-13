@@ -1,27 +1,21 @@
-import { Movie } from "@/lib/data";
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Star, Clock } from "lucide-react";
 
-interface MovieGridProps {
-  title: string;
-  movies: Movie[];
-}
-
-export function MovieGrid({ title, movies }: MovieGridProps) {
+export function MovieGrid({ title, movies }: any) {
   return (
     <section className="py-16 container mx-auto px-4">
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-3xl md:text-4xl font-display text-white">{title}</h2>
-        <a href="#" className="text-primary hover:text-primary/80 text-sm font-medium tracking-wide border-b border-primary/30 pb-0.5">
+        <Link href="/movies" className="text-primary hover:text-primary/80 text-sm font-medium tracking-wide border-b border-primary/30 pb-0.5">
           VIEW ALL
-        </a>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {movies.map((movie, idx) => (
+        {movies.map((movie: any, idx: any) => (
           <motion.div
             key={movie.id}
             initial={{ opacity: 0, y: 20 }}
@@ -35,7 +29,7 @@ export function MovieGrid({ title, movies }: MovieGridProps) {
                   {/* Poster Image */}
                   <div className="aspect-[2/3] relative overflow-hidden rounded-xl bg-muted">
                     <img 
-                      src={movie.poster} 
+                      src={movie.poster_url} 
                       alt={movie.title}
                       className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
                     />
@@ -48,7 +42,7 @@ export function MovieGrid({ title, movies }: MovieGridProps) {
                     </div>
                     {/* Rating Badge */}
                     <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded-md border border-white/10 text-xs font-bold text-white">
-                      {movie.rating}
+                      {movie.age_rating}
                     </div>
                   </div>
 
@@ -62,7 +56,7 @@ export function MovieGrid({ title, movies }: MovieGridProps) {
                         <Clock className="h-3.5 w-3.5" />
                         <span>{movie.duration}</span>
                       </div>
-                      <span className="text-white/60">{movie.genre[0]}</span>
+                      <span className="text-white/60">{movie.genres[0]}</span>
                     </div>
                   </div>
                 </CardContent>

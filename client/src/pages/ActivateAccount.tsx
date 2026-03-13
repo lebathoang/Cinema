@@ -1,42 +1,49 @@
-import { useState } from "react";
+"use client";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { activateSchema, ActivateFormData } from "@/schema/activateSchema";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Mail, Lock, ArrowRight, Github } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { Mail, Lock, ArrowRight } from "lucide-react";
 import axios from "axios";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema, LoginFormData } from "../schema/loginSchema";
-import { loginApi } from "@/api/loginApi";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
-export function Login() {
+export function ActivateAccount() {
+
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+  } = useForm<ActivateFormData>({
+    resolver: zodResolver(activateSchema),
   });
 
+  const [success, setSuccess] = useState(false);
   const [, setLocation] = useLocation();
-  const [error, setError] = useState("");
 
-  const onSubmit = async (data: LoginFormData) => {
+  const onSubmit = async (data: ActivateFormData) => {
+    const token = new URLSearchParams(window.location.search).get("token");
+    console.log(token);
+
     try {
-      const result = await loginApi(data);
+      await axios.post(
+        `http://localhost:5000/api/auth/activate-account`,
+        { token }
+      );
 
-      localStorage.setItem("token", result.token);
-      localStorage.setItem("user", JSON.stringify(result.user));
-
-      setLocation("/");
-      // window.location.reload();
-
-    } catch (error) {
-      console.log(error);
-      setError("Có lỗi xảy ra, vui lòng thử lại");
+      setSuccess(true);
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Activation failed");
     }
   };
 
@@ -78,8 +85,8 @@ export function Login() {
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input
-                      type="password"
                       {...register("password")}
+                      type="password"
                       placeholder="Password"
                       className="bg-white/5 border-white/10 h-14 pl-12 rounded-2xl focus:border-primary transition-all"
                       data-testid="input-password"
@@ -91,55 +98,35 @@ export function Login() {
                     )}
                   </div>
                 </div>
-                {error && (
-                  <p className="text-red-500 text-sm">{error}</p>
-                )}
-                <div className="flex justify-end">
-                  <Link href="/forgot-password">
-                    <span className="text-xs font-bold text-primary uppercase tracking-widest cursor-pointer hover:underline">Forgot Password?</span>
-                  </Link>
-                </div>
                 <Button
                   type="submit"
                   className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-bold text-lg hover:bg-primary/90 shadow-xl shadow-primary/20 group"
                   data-testid="button-login"
                 >
-                  LOGIN
+                  ACTIVE
                   <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </form>
-
-              <div className="relative py-4">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-white/5"></div>
-                </div>
-                <div className="relative flex justify-center text-[10px] uppercase tracking-[0.3em] font-bold">
-                  <span className="bg-card px-4 text-muted-foreground">Or Continue With</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Button variant="outline" className="h-12 rounded-xl border-white/10 hover:bg-white/5 text-white gap-2">
-                  <Github className="h-5 w-5" /> GitHub
-                </Button>
-                <Button variant="outline" className="h-12 rounded-xl border-white/10 hover:bg-white/5 text-white gap-2">
-                  <svg className="h-5 w-5" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z" />
-                  </svg>
-                  Google
-                </Button>
-              </div>
-
-              <p className="text-center text-muted-foreground text-sm pt-4">
-                New to Cineplex?{" "}
-                <Link href="/register">
-                  <span className="text-primary font-bold hover:underline cursor-pointer">Register Now</span>
-                </Link>
-              </p>
             </CardContent>
           </Card>
         </motion.div>
       </main>
+      <Dialog open={success} onOpenChange={setSuccess}>
+        <DialogContent className="text-center">
+          <DialogTitle className="text-green-500 text-2xl">
+            ✔ Account Activated
+          </DialogTitle>
+
+          <p>Your account has been activated successfully.</p>
+
+          <Button
+            className="mt-4 w-full"
+            onClick={() => setLocation("/login")}
+          >
+            Go to Login
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
-  );
+  )
 }

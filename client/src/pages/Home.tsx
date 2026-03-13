@@ -1,27 +1,40 @@
+import { useEffect, useState } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { MovieGrid } from "@/components/movies/MovieGrid";
-import { movies } from "@/lib/data";
 import cinemaBg from "@assets/generated_images/cinematic_dark_movie_theater_background.png";
+import { getMovies } from "../api/movieApi";
 
 export function Home() {
+
+  const [movies, setMovies] = useState([]);
+
+  useEffect(() => {
+    const fetchMovies = async () => {
+      const data = await getMovies();
+      setMovies(data);
+    };
+
+    fetchMovies();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
-      <main>
-        <HeroCarousel movies={movies} />
-        
+
+      <main className="pt-20">
+        {movies.length > 0 && <HeroCarousel movies={movies} />}
+
         <div className="relative">
           {/* Subtle background texture */}
           <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none" />
-          
+
           <MovieGrid title="Now Showing" movies={movies} />
-          
+
           {/* Coming Soon Section */}
           <section className="py-16 bg-secondary/30 border-t border-white/5 relative overflow-hidden">
             <div className="absolute inset-0">
-                <img src={cinemaBg} className="w-full h-full object-cover opacity-10 blur-sm" />
+              <img src={cinemaBg} className="w-full h-full object-cover opacity-10 blur-sm" />
             </div>
             <div className="container mx-auto px-4 relative z-10">
               <div className="text-center max-w-2xl mx-auto mb-12">

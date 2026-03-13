@@ -27,6 +27,7 @@ import { Logout } from "@/pages/Logout";
 import { ForgotPassword } from "@/pages/ForgotPassword";
 import { ChangePassword } from "@/pages/ChangePassword";
 import { ResetPassword } from "@/pages/ResetPassword";
+import { ActivateAccount } from "@/pages/ActivateAccount";
 
 function Router() {
   return (
@@ -38,6 +39,7 @@ function Router() {
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/change-password" component={ChangePassword} />
+      <Route path="/activate-account" component={ActivateAccount} />
       <Route path="/movies" component={MoviesList} />
       <Route path="/movie/:id" component={MovieDetail} />
       <Route path="/checkout" component={Checkout} />

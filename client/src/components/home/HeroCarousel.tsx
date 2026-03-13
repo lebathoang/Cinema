@@ -5,22 +5,24 @@ import { Play, Ticket } from "lucide-react";
 import { Link } from "wouter";
 import { Movie } from "@/lib/data";
 
-interface HeroCarouselProps {
-  movies: Movie[];
-}
-
-export function HeroCarousel({ movies }: HeroCarouselProps) {
+export function HeroCarousel( { movies }: any ) {
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  if (!movies || movies.length === 0) {
+    return null;
+  }
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % movies.length);
+      setCurrentIndex((prev) =>
+        movies.length ? (prev + 1) % movies.length : 0
+      );
     }, 6000);
     return () => clearInterval(timer);
   }, [movies.length]);
 
-  const currentMovie = movies[currentIndex];
-
+  const currentMovie: Movie = movies[currentIndex];
+  
   return (
     <div className="relative h-[85vh] w-full overflow-hidden bg-background">
       <AnimatePresence mode="wait">
@@ -33,9 +35,9 @@ export function HeroCarousel({ movies }: HeroCarouselProps) {
           className="absolute inset-0"
         >
           {/* Background Image with Blur & Overlay */}
-          <div 
+          <div
             className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${currentMovie.backdrop})` }}
+            style={{ backgroundImage: `url(${currentMovie.banner_url})` }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/30" />
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/50 to-transparent" />
@@ -52,24 +54,24 @@ export function HeroCarousel({ movies }: HeroCarouselProps) {
           className="max-w-2xl"
         >
           <div className="flex flex-wrap gap-2 mb-4">
-            {currentMovie.genre.map((g) => (
-              <span key={g} className="px-3 py-1 bg-white/10 backdrop-blur-sm border border-white/10 rounded-full text-xs font-medium uppercase tracking-wider">
-                {g}
+            {currentMovie.genres.map((gen: string) => (
+              <span key={gen} className="px-3 py-1 bg-white/10 backdrop-blur-sm border border-white/10 rounded-full text-xs font-medium uppercase tracking-wider">
+                {gen}
               </span>
             ))}
             <span className="px-3 py-1 bg-primary/20 border border-primary/30 text-primary rounded-full text-xs font-bold">
-              {currentMovie.rating}
+              {currentMovie.age_rating}
             </span>
           </div>
-          
+
           <h1 className="text-6xl md:text-8xl font-display font-bold mb-4 leading-[0.9] text-white">
             {currentMovie.title}
           </h1>
-          
+
           <p className="text-lg text-gray-300 mb-8 line-clamp-2 md:line-clamp-none max-w-xl">
             {currentMovie.description}
           </p>
-          
+
           <div className="flex flex-wrap gap-4">
             <Link href={`/movie/${currentMovie.id}`}>
               <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold px-8 h-12 text-md rounded-full">
@@ -77,9 +79,9 @@ export function HeroCarousel({ movies }: HeroCarouselProps) {
                 Book Tickets
               </Button>
             </Link>
-            <Button 
-              size="lg" 
-              variant="outline" 
+            <Button
+              size="lg"
+              variant="outline"
               className="border-white/20 hover:bg-white/10 text-white rounded-full h-12 px-8"
               onClick={() => {
                 const trailerUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"; // Placeholder trailer
@@ -95,13 +97,12 @@ export function HeroCarousel({ movies }: HeroCarouselProps) {
 
       {/* Indicators */}
       <div className="absolute bottom-8 right-8 flex gap-2 z-20">
-        {movies.map((_, idx) => (
+        {movies.map((idx: any) => (
           <button
             key={idx}
             onClick={() => setCurrentIndex(idx)}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              idx === currentIndex ? "w-8 bg-primary" : "w-2 bg-white/30 hover:bg-white/50"
-            }`}
+            className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentIndex ? "w-8 bg-primary" : "w-2 bg-white/30 hover:bg-white/50"
+              }`}
           />
         ))}
       </div>
