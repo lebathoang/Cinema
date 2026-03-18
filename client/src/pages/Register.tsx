@@ -1,17 +1,18 @@
 "use client";
 
+import { useState } from "react";
+import axios from "axios";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Mail, Lock, User, ArrowRight, Github } from "lucide-react";
+import { useForm } from "react-hook-form";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Mail, Lock, User, ArrowRight, Github } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { registerSchema, RegisterFormData } from "@/schema/registerSchema";
-import axios from "axios";
-import { useState } from "react";
+import { registerSchema, RegisterFormData } from "@/schemas/registerSchema";
+import { registerApi } from "../api/registerApi";
 import {
   Dialog,
   DialogContent,
@@ -35,13 +36,12 @@ export function Register() {
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
-      await axios.post("http://localhost:5000/api/auth/register", data);
+      await registerApi(data);
       setShowCheckMail(true)
 
       // setSuccessModal(true);
     } catch (error) {
       console.log(error);
-      alert("Email already exists");
     }
   };
 

@@ -7,14 +7,31 @@ import { motion } from "framer-motion";
 import { Mail, ArrowLeft, Send } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { forgotPasswordSchema, ForgotPasswordFormData } from "../schemas/forgotPasswordSchema";
+import { forgotPassword } from "../api/forgotPasswordApi";
 
 export function ForgotPassword() {
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
+  });
+
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitted(true);
-    toast.success("Recovery link sent to your email!");
+  const onSubmit = async (data: ForgotPasswordFormData) => {
+    try {
+      await forgotPassword(data);
+      setSubmitted(true);
+      toast.success("Recovery link sent to your email!");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Something went wrong");
+    }
   };
 
   return (
@@ -27,36 +44,40 @@ export function ForgotPassword() {
           className="w-full max-w-md"
         >
           <Card className="bg-card border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl relative">
-             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full -mr-16 -mt-16" />
-            
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full -mr-16 -mt-16" />
+
             <CardHeader className="pt-12 px-8 text-center">
               <div className="mx-auto h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
                 <Send className="h-8 w-8 text-primary" />
               </div>
               <CardTitle className="text-4xl font-display text-white uppercase tracking-tight">Recovery</CardTitle>
               <CardDescription className="text-muted-foreground text-lg">
-                {submitted 
-                  ? "Check your inbox for instructions." 
+                {submitted
+                  ? "Check your inbox for instructions."
                   : "We'll send you a link to get back into your account."}
               </CardDescription>
             </CardHeader>
             <CardContent className="p-8 space-y-6">
               {!submitted ? (
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                   <div className="space-y-2">
                     <div className="relative">
                       <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                      <Input 
+                      <Input
+                        {...register("email")}
                         required
                         type="email"
-                        placeholder="Email Address" 
+                        placeholder="Email Address"
                         className="bg-white/5 border-white/10 h-14 pl-12 rounded-2xl focus:border-primary transition-all"
                         data-testid="input-email"
                       />
+                      {errors.email && (
+                        <p className="text-red-500 text-sm">{errors.email.message}</p>
+                      )}
                     </div>
                   </div>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-bold text-lg hover:bg-primary/90 shadow-xl shadow-primary/20"
                     data-testid="button-reset"
                   >
@@ -71,15 +92,15 @@ export function ForgotPassword() {
                 </div>
               )}
 
-                <Link href="/reset-password">
-                  <Button 
-                    type="button"
-                    variant="link"
-                    className="w-full mt-4 text-[10px] text-primary/50 hover:text-primary uppercase tracking-[0.2em] font-bold"
-                  >
-                    Simulate: Click Reset Link
-                  </Button>
-                </Link>
+              <Link href="/reset-password">
+                <Button
+                  type="button"
+                  variant="link"
+                  className="w-full mt-4 text-[10px] text-primary/50 hover:text-primary uppercase tracking-[0.2em] font-bold"
+                >
+                  Simulate: Click Reset Link
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </motion.div>

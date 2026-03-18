@@ -6,14 +6,39 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Lock, ShieldCheck, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { resetPasswordSchema, ResetPasswordFormData } from "../schemas/resetPasswordSchema";
+import { resetPassword } from "../api/resetPassword";
 
 export function ResetPassword() {
-  const [, setLocation] = useLocation();
 
-  const handleReset = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success("Password reset successfully!");
-    setLocation("/login");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
+  });
+
+  const [, setLocation] = useLocation();
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get("id") || "";
+  const token = params.get("token") || "";
+
+  const onSubmit = async (data: ResetPasswordFormData) => {
+    try {
+      await resetPassword({
+        id,
+        token,
+        password: data.password,
+      });
+
+      toast.success("Password reset successfully!");
+      setLocation("/login");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Reset failed");
+    }
   };
 
   return (
@@ -36,31 +61,42 @@ export function ResetPassword() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-8 space-y-6">
-              <form onSubmit={handleReset} className="space-y-4">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-2">
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input 
+                    <Input
+                      {...register("password")}
                       required
                       type="password"
-                      placeholder="New Password" 
+                      placeholder="New Password"
                       className="bg-white/5 border-white/10 h-14 pl-12 rounded-2xl focus:border-primary transition-all"
                     />
+                    {errors.password && (
+                      <p className="text-red-500 text-sm">{errors.password.message}</p>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input 
+                    <Input
+                      {...register("confirmPassword")}
                       required
                       type="password"
-                      placeholder="Confirm New Password" 
+                      placeholder="Confirm New Password"
                       className="bg-white/5 border-white/10 h-14 pl-12 rounded-2xl focus:border-primary transition-all"
                     />
+                    {errors.confirmPassword && (
+                      <p className="text-red-500 text-sm">
+                        {errors.confirmPassword.message}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
                   className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-bold text-lg hover:bg-primary/90 shadow-xl shadow-primary/20 group"
                 >
                   RESET PASSWORD

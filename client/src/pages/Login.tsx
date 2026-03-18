@@ -1,4 +1,5 @@
 import { useState } from "react";
+import axios from "axios";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +8,8 @@ import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Mail, Lock, ArrowRight, Github } from "lucide-react";
 import { useForm } from "react-hook-form";
-import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema, LoginFormData } from "../schema/loginSchema";
+import { loginSchema, LoginFormData } from "../schemas/loginSchema";
 import { loginApi } from "@/api/loginApi";
 
 export function Login() {
@@ -32,11 +32,15 @@ export function Login() {
       localStorage.setItem("user", JSON.stringify(result.user));
 
       setLocation("/");
-      // window.location.reload();
 
-    } catch (error) {
+    } catch (error: any) {
       console.log(error);
-      setError("Có lỗi xảy ra, vui lòng thử lại");
+
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message || "Có lỗi xảy ra");
+      } else {
+        setError("Có lỗi xảy ra, vui lòng thử lại");
+      }
     }
   };
 

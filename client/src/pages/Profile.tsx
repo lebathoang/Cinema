@@ -30,13 +30,10 @@ export function Profile() {
     // reload để navbar render lại trạng thái
     window.location.reload();
   };
-  const user = {
-    name: "Alex Rivera",
-    email: "alex.rivera@example.com",
-    membership: "Gold Member",
-    points: 2450,
-    avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"
-  };
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const avatar =
+  user.avatar ||
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullname)}&background=random&color=fff&size=200`;
 
   const recentBookings = [
     {
@@ -73,8 +70,8 @@ export function Profile() {
                 <div className="relative inline-block mb-6">
                   <div className="h-32 w-32 rounded-full border-4 border-primary/20 p-1">
                     <img
-                      src={user.avatar}
-                      alt={user.name}
+                      src={avatar}
+                      alt={user.fullname}
                       className="h-full w-full rounded-full object-cover"
                     />
                   </div>
@@ -83,7 +80,7 @@ export function Profile() {
                   </div>
                 </div>
 
-                <h1 className="text-3xl font-display text-white mb-1 uppercase tracking-tight">{user.name}</h1>
+                <h1 className="text-3xl font-display text-white mb-1 uppercase tracking-tight">{user.fullname}</h1>
                 <p className="text-muted-foreground text-sm mb-6">{user.email}</p>
 
                 <div className="flex items-center justify-center gap-4 py-4 border-y border-white/5 mb-8">

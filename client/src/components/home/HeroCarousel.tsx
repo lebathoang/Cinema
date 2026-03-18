@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Play, Ticket } from "lucide-react";
 import { Link } from "wouter";
-import { Movie } from "@/lib/data";
 
 export function HeroCarousel( { movies }: any ) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -21,7 +20,7 @@ export function HeroCarousel( { movies }: any ) {
     return () => clearInterval(timer);
   }, [movies.length]);
 
-  const currentMovie: Movie = movies[currentIndex];
+  const currentMovie = movies[currentIndex];
   
   return (
     <div className="relative h-[85vh] w-full overflow-hidden bg-background">

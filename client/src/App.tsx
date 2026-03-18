@@ -42,7 +42,7 @@ function Router() {
       <Route path="/activate-account" component={ActivateAccount} />
       <Route path="/movies" component={MoviesList} />
       <Route path="/movie/:id" component={MovieDetail} />
-      <Route path="/checkout" component={Checkout} />
+      <Route path="/checkout/:id" component={Checkout} />
       <Route path="/cinemas" component={Cinemas} />
       <Route path="/cinema/:id" component={CinemaSchedule} />
       <Route path="/offers" component={Offers} />

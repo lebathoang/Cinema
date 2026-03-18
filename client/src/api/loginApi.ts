@@ -1,5 +1,5 @@
 import axios from "axios";
-import { LoginFormData } from "../schema/loginSchema";
+import { LoginFormData } from "../schemas/loginSchema";
 
 export const loginApi = async (data: LoginFormData) => {
   try {

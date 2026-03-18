@@ -60,7 +60,7 @@ export function Checkout() {
                 className="bg-card border border-white/10 rounded-3xl p-8 flex flex-col md:flex-row gap-8"
               >
                 <div className="w-full md:w-32 aspect-[2/3] rounded-xl overflow-hidden flex-shrink-0">
-                  <img src={movie.poster} alt={movie.title} className="w-full h-full object-cover" />
+                  <img src={movie.banner_url} alt={movie.title} className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1 space-y-6">
                   <div>

@@ -2,7 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { activateSchema, ActivateFormData } from "@/schema/activateSchema";
+import { activateSchema, ActivateFormData } from "@/schemas/activateSchema";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
