@@ -1,20 +1,36 @@
 import { Navbar } from "@/components/layout/Navbar";
-import { movies } from "@/lib/data";
-import { useLocation } from "wouter";
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { searchMovies } from "@/api/movieApi";
+// import { useLocation } from "wouter";
 import { MovieGrid } from "@/components/movies/MovieGrid";
 import { Search } from "lucide-react";
 
 export function SearchResults() {
-  const [location] = useLocation();
-  const searchPart = typeof location === 'string' && location.includes('?') ? location.split('?')[1] : "";
-  const queryParams = new URLSearchParams(searchPart);
-  const query = queryParams.get('q') || "";
 
-  const filteredMovies = movies.filter(movie => 
-    movie.title.toLowerCase().includes(query.toLowerCase()) ||
-    movie.genre.some(g => g.toLowerCase().includes(query.toLowerCase()))
-  );
+  // const [location] = useLocation();
+  // const searchPart = typeof location === 'string' && location.includes('?') ? location.split('?')[1] : "";
+  const queryParams = new URLSearchParams(window.location.search);
+  const query = queryParams.get("q") || "";
+
+  const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+     console.log("Query hiện tại:", query);
+    const fetchMovies = async () => {
+      try {
+        setLoading(true);
+        const data = await searchMovies(query);
+        console.log("API result:", data);
+        setMovies(data.data || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (query) fetchMovies();
+  }, [query]);
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -28,9 +44,8 @@ export function SearchResults() {
             </p>
           </div>
         </div>
-
-        {filteredMovies.length > 0 ? (
-          <MovieGrid title="" movies={filteredMovies} />
+        {movies.length > 0 ? (
+          <MovieGrid title="" movies={movies} />
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
             <div className="h-20 w-20 rounded-full bg-white/5 flex items-center justify-center">

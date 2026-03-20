@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Search, Menu, User, Ticket, Bell, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { suggestMovies } from "@/api/movieApi";
+
+function debounce(fn: any, delay: any) {
+  let timeout: any;
+  return (...args: any) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn(...args), delay);
+  };
+}
 
 export function Navbar() {
   const [location] = useLocation();
@@ -20,6 +29,25 @@ export function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
   const [user, setUser] = useState(null);
+  const [suggestions, setSuggestions] = useState<{ title: string }[]>([]);
+  const [loadingSuggest, setLoadingSuggest] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+
+  const fetchSuggest = debounce(async (value: any) => {
+    if (!value.trim()) {
+      setSuggestions([]);
+      return;
+    }
+    try {
+      setLoadingSuggest(true);
+      const data = await suggestMovies(value);
+      setSuggestions(data.data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingSuggest(false);
+    }
+  }, 300);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -35,6 +63,23 @@ export function Navbar() {
       setSearchQuery("");
     }
   };
+
+  const handleSelect = (title: string) => {
+    setLocation(`/search?q=${encodeURIComponent(title)}`);
+    setIsSearchOpen(false);
+    setSearchQuery("");
+    setSuggestions([]);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: any) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setSuggestions([]);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-xl border-b border-white/5">
@@ -127,17 +172,50 @@ export function Navbar() {
             <DialogTitle className="text-3xl font-display text-white uppercase tracking-tight">Quick Search</DialogTitle>
           </DialogHeader>
           <div className="flex gap-3">
-            <div className="relative flex-1 group">
+            <div className="relative flex-1 group" ref={wrapperRef}>
+
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground group-focus-within:text-primary transition-colors" />
+
               <Input
                 placeholder="Search movies, cinemas, or genres..."
                 className="pl-14 h-16 bg-white/5 border-white/10 rounded-2xl focus:border-primary/50 transition-all text-lg text-white placeholder:text-white/20"
                 autoFocus
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSearchQuery(value);
+                  fetchSuggest(value);
+                }}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               />
+
+              {/* DROPDOWN */}
+              {(searchQuery || suggestions.length > 0) && (
+                <div className="absolute top-full left-0 w-full mt-2 bg-black border border-white/10 rounded-xl overflow-hidden z-50 shadow-lg">
+
+                  {loadingSuggest ? (
+                    <div className="p-3 text-sm text-muted-foreground">
+                      Đang tìm...
+                    </div>
+                  ) : suggestions.length > 0 ? (
+                    suggestions.map((item, index) => (
+                      <div
+                        key={index}
+                        onClick={() => handleSelect(item.title)}
+                        className="p-3 text-white hover:bg-white/10 cursor-pointer transition"
+                      >
+                        {item.title}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-3 text-sm text-muted-foreground italic">
+                      Không có phim trùng khớp
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
             <Button
               size="lg"
               className="h-16 px-8 rounded-2xl bg-primary text-primary-foreground font-bold hover:bg-primary/90"

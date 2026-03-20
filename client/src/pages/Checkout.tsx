@@ -1,22 +1,22 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
-import { movies } from "@/lib/data";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { 
-  CreditCard, 
-  Ticket, 
-  ShieldCheck, 
-  MapPin, 
-  Clock, 
-  Calendar, 
+import {
+  CreditCard,
+  Ticket,
+  ShieldCheck,
+  MapPin,
+  Clock,
+  Calendar,
   ChevronRight,
   Info,
   Tag,
   CheckCircle2
 } from "lucide-react";
-import { useLocation } from "wouter";
+import { useLocation, useParams } from "wouter";
+import { getMovieDetail } from "@/api/movieDetailApi";
 
 const OFFERS = [
   { id: 'FIRST10', title: 'New User Discount', description: 'Get $5 off on your first booking', discount: 5, code: 'FIRST10' },
@@ -25,11 +25,26 @@ const OFFERS = [
 ];
 
 export function Checkout() {
+  const params = useParams();
   const [, setLocation] = useLocation();
   const [selectedOffer, setSelectedOffer] = useState(OFFERS[0]);
-  
+  const [movie, setMovie] = useState<any>(null);
+
   // Mock data for checkout since we don't have a global state manager yet
-  const movie = movies[0]; 
+  useEffect(() => {
+    const fetchMovie = async () => {
+      try {
+        const data = await getMovieDetail(params.id!);
+        console.log(data);
+        setMovie(data);
+      } catch (err) {
+        console.error(err);
+        setMovie(null);
+      }
+    };
+
+    fetchMovie();
+  }, [params.id]);
   const selectedSeats = ["H4", "H5"];
   const subtotal = selectedSeats.length * 14.99;
   const bookingFee = 2.50;
@@ -52,9 +67,9 @@ export function Checkout() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
             {/* Left Column: Payment & Details */}
             <div className="lg:col-span-8 space-y-8">
-              
+
               {/* Movie Summary Card */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-card border border-white/10 rounded-3xl p-8 flex flex-col md:flex-row gap-8"
@@ -67,7 +82,7 @@ export function Checkout() {
                     <h2 className="text-3xl font-display text-white mb-2">{movie.title}</h2>
                     <p className="text-muted-foreground text-sm">Action • Sci-Fi • {movie.duration}</p>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                     <div className="space-y-1">
                       <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Date</p>
@@ -154,16 +169,16 @@ export function Checkout() {
                   <h3 className="text-2xl font-display text-white uppercase tracking-tight">Available Offers</h3>
                   <span className="text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/10 px-3 py-1 rounded-full">3 Offers Found</span>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {OFFERS.map((offer) => (
-                    <button 
+                    <button
                       key={offer.id}
                       onClick={() => setSelectedOffer(offer)}
                       className={cn(
                         "flex items-start gap-4 p-5 rounded-2xl transition-all border text-left relative overflow-hidden group",
-                        selectedOffer?.id === offer.id 
-                          ? "bg-primary/5 border-primary shadow-lg shadow-primary/5" 
+                        selectedOffer?.id === offer.id
+                          ? "bg-primary/5 border-primary shadow-lg shadow-primary/5"
                           : "bg-white/[0.02] border-white/5 hover:border-white/20"
                       )}
                     >
@@ -194,18 +209,18 @@ export function Checkout() {
               <div className="sticky top-24 space-y-6">
                 <div className="bg-card border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full -mr-16 -mt-16" />
-                  
+
                   <h3 className="text-2xl font-display text-white mb-8 uppercase tracking-tight">Order Summary</h3>
-                  
+
                   <div className="space-y-4 mb-8">
                     <div className="flex justify-between items-center py-2 border-b border-white/5">
                       <span className="text-muted-foreground">Tickets ({selectedSeats.length}x)</span>
                       <span className="text-white font-medium">${subtotal.toFixed(2)}</span>
                     </div>
-                    
+
                     <AnimatePresence mode="wait">
                       {selectedOffer && (
-                        <motion.div 
+                        <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
@@ -240,8 +255,8 @@ export function Checkout() {
                     </div>
                   </div>
 
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     className="w-full h-16 text-lg font-bold rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xl shadow-primary/20 group"
                     onClick={() => {
                       alert("Booking confirmed! Redirecting to ticket...");

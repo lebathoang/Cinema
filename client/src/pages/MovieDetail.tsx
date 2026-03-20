@@ -23,7 +23,6 @@ export function MovieDetail() {
     const fetchMovie = async () => {
       try {
         const data = await getMovieDetail(params.id!);
-        console.log(data.id);
         setMovie(data);
       } catch (err) {
         console.error(err);

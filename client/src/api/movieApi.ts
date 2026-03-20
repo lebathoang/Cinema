@@ -1,10 +1,12 @@
 import axios from "axios";
 
+const api = axios.create({
+  baseURL: "http://localhost:5000/api",
+});
+
 export async function getMovies() {
   try {
-    const res = await axios.get(
-      "http://localhost:5000/api/movies/list-movie"
-    );
+    const res = await api.get("/movies/list-movie");
 
     return res.data.data;
 
@@ -12,3 +14,19 @@ export async function getMovies() {
     throw new Error("Failed to fetch movies");
   }
 }
+
+// search full
+export const searchMovies = async (keyword: any) => {
+  const res = await api.get("/movies/search", {
+    params: { keyword },
+  });
+  return res.data;
+};
+
+// suggest autocomplete
+export const suggestMovies = async (keyword: any) => {
+  const res = await api.get("/movies/suggest", {
+    params: { keyword },
+  });
+  return res.data;
+};
