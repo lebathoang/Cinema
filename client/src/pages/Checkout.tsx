@@ -16,7 +16,7 @@ import {
   CheckCircle2
 } from "lucide-react";
 import { useLocation, useParams } from "wouter";
-import { getMovieDetail } from "@/api/movieDetailApi";
+import { getMovieDetail } from "@/api/movieApi";
 
 const OFFERS = [
   { id: 'FIRST10', title: 'New User Discount', description: 'Get $5 off on your first booking', discount: 5, code: 'FIRST10' },

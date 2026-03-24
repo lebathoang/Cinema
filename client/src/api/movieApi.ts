@@ -6,7 +6,7 @@ const api = axios.create({
 
 export async function getMovies() {
   try {
-    const res = await api.get("/movies/list-movie");
+    const res = await api.get("/movies/list-movies");
 
     return res.data.data;
 
@@ -14,6 +14,17 @@ export async function getMovies() {
     throw new Error("Failed to fetch movies");
   }
 }
+
+export const getMovieDetail = async (id: string) => {
+  try {
+      const res = await api.get(`/movies/movie/${id}`);
+  
+      return res.data.data;
+  
+    } catch (error) {
+      throw new Error("Failed to fetch movies");
+    }
+};
 
 // search full
 export const searchMovies = async (keyword: any) => {
@@ -30,3 +41,10 @@ export const suggestMovies = async (keyword: any) => {
   });
   return res.data;
 };
+
+// hot movie
+
+export async function getRandomMovies() {
+  const res = await api.get("/movies/random-movies?limit=10");
+  return res.data.data;
+}

@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import NotFound from "@/pages/not-found";
 import { motion } from "framer-motion";
-import { getMovieDetail } from "@/api/movieDetailApi";
+import { getMovieDetail } from "@/api/movieApi";
 
 export function MovieDetail() {
   const params = useParams();

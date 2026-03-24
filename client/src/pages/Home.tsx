@@ -3,7 +3,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { MovieGrid } from "@/components/movies/MovieGrid";
 import cinemaBg from "@assets/generated_images/cinematic_dark_movie_theater_background.png";
-import { getMovies } from "../api/movieApi";
+import { getRandomMovies } from "../api/movieApi";
 
 export function Home() {
 
@@ -11,7 +11,7 @@ export function Home() {
 
   useEffect(() => {
     const fetchMovies = async () => {
-      const data = await getMovies();
+      const data = await getRandomMovies()
       setMovies(data);
     };
 
