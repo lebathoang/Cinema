@@ -4,6 +4,7 @@ const api = axios.create({
   baseURL: "http://localhost:5000/api",
 });
 
+// full movie
 export async function getMovies() {
   try {
     const res = await api.get("/movies/list-movies");
@@ -15,6 +16,7 @@ export async function getMovies() {
   }
 }
 
+// Movie detail
 export const getMovieDetail = async (id: string) => {
   try {
       const res = await api.get(`/movies/movie/${id}`);
@@ -43,7 +45,6 @@ export const suggestMovies = async (keyword: any) => {
 };
 
 // hot movie
-
 export async function getRandomMovies() {
   const res = await api.get("/movies/random-movies?limit=10");
   return res.data.data;

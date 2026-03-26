@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { resetPasswordSchema, ResetPasswordFormData } from "../schemas/resetPasswordSchema";
-import { resetPassword } from "../api/resetPassword";
+import { resetPassword } from "../api/authApi";
 
 export function ResetPassword() {
 

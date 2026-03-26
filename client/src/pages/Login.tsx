@@ -10,7 +10,7 @@ import { Mail, Lock, ArrowRight, Github } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, LoginFormData } from "../schemas/loginSchema";
-import { loginApi } from "@/api/loginApi";
+import { loginApi } from "@/api/authApi";
 
 export function Login() {
   const {

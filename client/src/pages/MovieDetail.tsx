@@ -1,7 +1,7 @@
 import { useParams, Link } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, MapPin, Star, Share2, Ticket, Info, Play, ChevronRight } from "lucide-react";
+import { Calendar, Clock, MapPin, Star, Share2, Play, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { SeatSelector } from "@/components/booking/SeatSelector";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import NotFound from "@/pages/not-found";
 import { motion } from "framer-motion";
 import { getMovieDetail } from "@/api/movieApi";
+import { getMovieCast } from "@/api/castApi";
 
 export function MovieDetail() {
   const params = useParams();
@@ -17,8 +18,10 @@ export function MovieDetail() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [bookingSummary, setBookingSummary] = useState({ count: 0, total: 0 });
   const [movie, setMovie] = useState<any>(null);
+  const [cast, setCast] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // get movie by id
   useEffect(() => {
     const fetchMovie = async () => {
       try {
@@ -34,11 +37,24 @@ export function MovieDetail() {
 
     fetchMovie();
   }, [params.id]);;
+  // get cast by movie
+  useEffect(() => {
+    const fetchCast = async () => {
+      try {
+        const data = await getMovieCast(params.id!);
+        setCast(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
 
+    fetchCast();
+  }, [params.id!]);
+  // effects while retrieving data
   if (loading) {
     return <div className="text-white text-center mt-20">Loading...</div>;
   }
-
+  // handle day and month
   const dates = Object.values(
     movie.showtimes.reduce((acc: any, s: any) => {
       const d = new Date(s.start_time);
@@ -55,12 +71,12 @@ export function MovieDetail() {
       return acc;
     }, {})
   );
-
+  // filtered showtimes
   const filteredShowtimes = movie.showtimes.filter((s: any) => {
     if (!selectedDate) return true;
     return new Date(s.start_time).toDateString() === selectedDate;
   });
-
+  // when is not find data
   if (!movie) return <NotFound />;
 
   return (
@@ -151,7 +167,7 @@ export function MovieDetail() {
                       <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-2">Duration</h4>
                       <p className="text-white flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
-                        {movie.duration}
+                        {movie.duration} minutes
                       </p>
                     </div>
                     <div>
@@ -184,13 +200,28 @@ export function MovieDetail() {
 
               <TabsContent value="cast" className="pt-8 animate-in fade-in slide-in-from-bottom-2">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-                  {["Christopher Nolan", "Cillian Murphy", "Emily Blunt", "Matt Damon"].map((name, i) => (
-                    <div key={name} className="group cursor-pointer">
+                  {cast.map((item: any) => (
+                    <div key={item.id} className="group cursor-pointer">
                       <div className="aspect-square rounded-full overflow-hidden bg-muted mb-4 border-2 border-transparent group-hover:border-primary transition-all grayscale group-hover:grayscale-0">
-                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`} alt={name} className="w-full h-full object-cover" />
+                        <img
+                          src={
+                            item.avatar ||
+                            `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.name}`
+                          }
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                      <h4 className="text-white font-medium text-center">{name}</h4>
-                      <p className="text-xs text-muted-foreground text-center">{i === 0 ? "Director" : "Actor"}</p>
+                      <h4 className="text-white font-medium text-center">{item.name}</h4>
+                      <p className="text-xs text-muted-foreground text-center">
+                        {item.character_name}
+                      </p>
+
+                      {item.role_type === "VOICE" && (
+                        <p className="text-[10px] text-yellow-400 text-center">
+                          Voice Actor
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>

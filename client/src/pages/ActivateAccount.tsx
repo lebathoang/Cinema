@@ -10,13 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Mail, Lock, ArrowRight } from "lucide-react";
-import axios from "axios";
 import { useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { activateAccount } from "@/api/authApi";
 
 export function ActivateAccount() {
 
@@ -33,13 +33,13 @@ export function ActivateAccount() {
 
   const onSubmit = async (data: ActivateFormData) => {
     const token = new URLSearchParams(window.location.search).get("token");
-    console.log(token);
 
     try {
-      await axios.post(
-        `http://localhost:5000/api/auth/activate-account`,
-        { token }
-      );
+      // await axios.post(
+      //   `http://localhost:5000/api/auth/activate-account`,
+      //   { token }
+      // );
+      await activateAccount(token)
 
       setSuccess(true);
     } catch (error: any) {

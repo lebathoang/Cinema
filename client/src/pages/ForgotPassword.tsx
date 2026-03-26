@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { forgotPasswordSchema, ForgotPasswordFormData } from "../schemas/forgotPasswordSchema";
-import { forgotPassword } from "../api/forgotPasswordApi";
+import { forgotPassword } from "../api/authApi";
 
 export function ForgotPassword() {
 

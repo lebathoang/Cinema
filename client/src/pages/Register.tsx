@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { registerSchema, RegisterFormData } from "@/schemas/registerSchema";
-import { registerApi } from "../api/registerApi";
+import { registerApi } from "../api/authApi";
 import {
   Dialog,
   DialogContent,
