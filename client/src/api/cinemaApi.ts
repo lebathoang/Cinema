@@ -23,3 +23,21 @@ export const searchCinemas = async (keyword: any) => {
   });
   return res.data;
 };
+
+// movies by cinema and date
+export const getMovieByDate = async (cinemaId: string, date: string) => {
+  const res = await api.get("/cinemas/movie-by-date", {
+    params: { cinemaId, date },
+  });
+
+  return res.data.data ?? res.data.movies ?? res.data;
+};
+
+// show dates by cinema
+export const getCinemaShowDates = async (cinemaId: string) => {
+  const res = await api.get("/cinemas/show-dates", {
+    params: { cinemaId },
+  });
+
+  return res.data.data ?? res.data.dates ?? res.data;
+};
