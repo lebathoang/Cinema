@@ -41,3 +41,10 @@ export const getCinemaShowDates = async (cinemaId: string) => {
 
   return res.data.data ?? res.data.dates ?? res.data;
 };
+
+// offers
+export const getOffers = async () => {
+  const res = await api.get("/offers/list-offers");
+
+  return res.data.data ?? res.data.offers ?? res.data;
+};

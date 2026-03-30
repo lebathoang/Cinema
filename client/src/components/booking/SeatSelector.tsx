@@ -4,22 +4,25 @@ import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { Armchair, ChevronRight, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useLocation } from "wouter";
 
 const ROWS = 8;
 const COLS = 12;
 const PRICE = 14.99;
 
 interface SeatSelectorProps {
-  onBooking: (count: number, total: number) => void;
+  onBooking: (booking: { count: number; total: number; seats: string[] }) => void;
+  onProceedToCheckout: (selectedSeats: string[]) => void;
 }
 
-export function SeatSelector({ onBooking }: SeatSelectorProps) {
+export function SeatSelector({ onBooking, onProceedToCheckout }: SeatSelectorProps) {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
 
   const occupiedSeats = useMemo(() => ["1-4", "1-5", "2-4", "2-5", "2-6", "5-2", "5-3", "6-8", "6-9"], []);
+  const formatSeatLabel = (seatId: string) => {
+    const [row, col] = seatId.split("-").map(Number);
+    return `${String.fromCharCode(65 + row)}${col + 1}`;
+  };
 
   const toggleSeat = (seatId: string) => {
     if (occupiedSeats.includes(seatId)) return;
@@ -40,7 +43,11 @@ export function SeatSelector({ onBooking }: SeatSelectorProps) {
         newSelection = [...prev, seatId];
       }
       
-      onBooking(newSelection.length, newSelection.length * PRICE);
+      onBooking({
+        count: newSelection.length,
+        total: newSelection.length * PRICE,
+        seats: newSelection.map(formatSeatLabel),
+      });
       return newSelection;
     });
   };
@@ -162,7 +169,7 @@ export function SeatSelector({ onBooking }: SeatSelectorProps) {
 
               <Button 
                 className="w-full h-14 rounded-xl bg-primary text-primary-foreground font-black text-lg hover:bg-primary/90 transition-all active:scale-[0.98] group"
-                onClick={() => setLocation("/checkout")}
+                onClick={() => onProceedToCheckout(selectedSeats.map(formatSeatLabel))}
               >
                 PROCEED TO CHECKOUT
                 <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />

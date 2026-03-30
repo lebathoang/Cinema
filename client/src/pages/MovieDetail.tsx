@@ -1,4 +1,4 @@
-import { useParams, Link } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, MapPin, Star, Share2, Play, ChevronRight } from "lucide-react";
@@ -11,17 +11,21 @@ import NotFound from "@/pages/not-found";
 import { motion } from "framer-motion";
 import { getMovieDetail } from "@/api/movieApi";
 import { getMovieCast } from "@/api/castApi";
+import { getCinemas } from "@/api/cinemaApi";
 
 export function MovieDetail() {
   const params = useParams();
+  const [, setLocation] = useLocation();
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [bookingSummary, setBookingSummary] = useState({ count: 0, total: 0 });
+  const [bookingSummary, setBookingSummary] = useState({ count: 0, total: 0, seats: [] as string[] });
   const [movie, setMovie] = useState<any>(null);
   const [cast, setCast] = useState([]);
+  const [cinemas, setCinemas] = useState<any[]>([]);
+  const [selectedCinema, setSelectedCinema] = useState<any>(null);
+  const [isCinemaDialogOpen, setIsCinemaDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // get movie by id
   useEffect(() => {
     const fetchMovie = async () => {
       try {
@@ -36,8 +40,8 @@ export function MovieDetail() {
     };
 
     fetchMovie();
-  }, [params.id]);;
-  // get cast by movie
+  }, [params.id]);
+
   useEffect(() => {
     const fetchCast = async () => {
       try {
@@ -49,41 +53,74 @@ export function MovieDetail() {
     };
 
     fetchCast();
-  }, [params.id!]);
-  // effects while retrieving data
+  }, [params.id]);
+
+  useEffect(() => {
+    const fetchCinemas = async () => {
+      try {
+        const data = await getCinemas();
+        setCinemas(data);
+        setSelectedCinema((currentCinema: any) => currentCinema ?? data?.[0] ?? null);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchCinemas();
+  }, []);
+
   if (loading) {
     return <div className="text-white text-center mt-20">Loading...</div>;
   }
-  // handle day and month
+
+  if (!movie) return <NotFound />;
+
   const dates = Object.values(
-    movie.showtimes.reduce((acc: any, s: any) => {
-      const d = new Date(s.start_time);
-      const key = d.toDateString();
+    movie.showtimes.reduce((acc: any, showtime: any) => {
+      const date = new Date(showtime.start_time);
+      const key = date.toDateString();
 
       if (!acc[key]) {
         acc[key] = {
           fullDate: key,
-          day: d.toLocaleDateString("en-US", { weekday: "short" }),
-          date: d.getDate().toString().padStart(2, "0"),
+          day: date.toLocaleDateString("en-US", { weekday: "short" }),
+          date: date.getDate().toString().padStart(2, "0"),
+          timestamp: date.getTime(),
         };
       }
 
       return acc;
     }, {})
-  );
-  // filtered showtimes
-  const filteredShowtimes = movie.showtimes.filter((s: any) => {
+  ).sort((a: any, b: any) => a.timestamp - b.timestamp);
+
+  const filteredShowtimes = movie.showtimes.filter((showtime: any) => {
     if (!selectedDate) return true;
-    return new Date(s.start_time).toDateString() === selectedDate;
+    return new Date(showtime.start_time).toDateString() === selectedDate;
   });
-  // when is not find data
-  if (!movie) return <NotFound />;
+
+  const persistBookingSelection = (selectedSeats: string[]) => {
+    const bookingPayload = {
+      movieId: String(movie.id),
+      movieTitle: movie.title,
+      posterUrl: movie.poster_url,
+      selectedSeats,
+      seatCount: selectedSeats.length,
+      subtotal: selectedSeats.length * 14.99,
+      total: selectedSeats.length * 14.99,
+      selectedDate,
+      selectedTime,
+      selectedCinema,
+      hall: "Hall 04",
+      pricePerSeat: 14.99,
+    };
+
+    sessionStorage.setItem("pending-booking", JSON.stringify(bookingPayload));
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
       <Navbar />
 
-      {/* Hero Section */}
       <div className="relative h-[70vh] w-full overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 scale-105"
@@ -111,7 +148,9 @@ export function MovieDetail() {
               size="lg"
               variant="outline"
               className="rounded-full border-white/20 hover:bg-white/10 text-white gap-2 backdrop-blur-md"
-              onClick={() => { window.open(movie.trailer_url, "_blank"); }}
+              onClick={() => {
+                window.open(movie.trailer_url, "_blank");
+              }}
             >
               <Play className="h-4 w-4 fill-white" />
               Watch Trailer
@@ -122,11 +161,13 @@ export function MovieDetail() {
               className="rounded-full text-white/70 hover:text-white gap-2"
               onClick={() => {
                 if (navigator.share) {
-                  navigator.share({
-                    title: movie.title,
-                    text: `Check out ${movie.title} at Cineplex Premiere!`,
-                    url: window.location.href,
-                  }).catch(console.error);
+                  navigator
+                    .share({
+                      title: movie.title,
+                      text: `Check out ${movie.title} at Cineplex Premiere!`,
+                      url: window.location.href,
+                    })
+                    .catch(console.error);
                 } else {
                   navigator.clipboard.writeText(window.location.href);
                   alert("Link copied to clipboard!");
@@ -142,11 +183,7 @@ export function MovieDetail() {
 
       <main className="container mx-auto px-4 -mt-12 relative z-20">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-
-          {/* Main Content */}
           <div className="lg:col-span-8 space-y-12">
-
-            {/* Tabs for Info */}
             <Tabs defaultValue="about" className="w-full">
               <TabsList className="bg-transparent border-b border-white/10 w-full justify-start rounded-none h-auto p-0 gap-8">
                 <TabsTrigger value="about" className="data-[state=active]:bg-transparent data-[state=active]:border-primary border-b-2 border-transparent rounded-none px-0 py-4 text-lg font-display text-muted-foreground data-[state=active]:text-white transition-all">ABOUT MOVIE</TabsTrigger>
@@ -187,11 +224,11 @@ export function MovieDetail() {
                       { label: "Dolby Atmos", icon: "Surround Sound" },
                       { label: "4K Laser", icon: "Crystal Clear" },
                       { label: "Recliner Seats", icon: "Premium Comfort" },
-                      { label: "IMAX", icon: "Massive Screen" }
-                    ].map(feat => (
-                      <div key={feat.label} className="text-center p-4 rounded-xl bg-white/5 border border-white/5">
-                        <div className="text-primary font-bold mb-1">{feat.label}</div>
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-tighter">{feat.icon}</div>
+                      { label: "IMAX", icon: "Massive Screen" },
+                    ].map((feature) => (
+                      <div key={feature.label} className="text-center p-4 rounded-xl bg-white/5 border border-white/5">
+                        <div className="text-primary font-bold mb-1">{feature.label}</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-tighter">{feature.icon}</div>
                       </div>
                     ))}
                   </div>
@@ -204,23 +241,16 @@ export function MovieDetail() {
                     <div key={item.id} className="group cursor-pointer">
                       <div className="aspect-square rounded-full overflow-hidden bg-muted mb-4 border-2 border-transparent group-hover:border-primary transition-all grayscale group-hover:grayscale-0">
                         <img
-                          src={
-                            item.avatar ||
-                            `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.name}`
-                          }
+                          src={item.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.name}`}
                           alt={item.name}
                           className="w-full h-full object-cover"
                         />
                       </div>
                       <h4 className="text-white font-medium text-center">{item.name}</h4>
-                      <p className="text-xs text-muted-foreground text-center">
-                        {item.character_name}
-                      </p>
+                      <p className="text-xs text-muted-foreground text-center">{item.character_name}</p>
 
                       {item.role_type === "VOICE" && (
-                        <p className="text-[10px] text-yellow-400 text-center">
-                          Voice Actor
-                        </p>
+                        <p className="text-[10px] text-yellow-400 text-center">Voice Actor</p>
                       )}
                     </div>
                   ))}
@@ -234,8 +264,8 @@ export function MovieDetail() {
                       <h3 className="text-3xl font-display text-white uppercase tracking-tight">User Reviews</h3>
                       <div className="flex items-center gap-2 mt-1">
                         <div className="flex">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star key={s} className="h-4 w-4 text-primary fill-primary" />
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star key={star} className="h-4 w-4 text-primary fill-primary" />
                           ))}
                         </div>
                         <span className="text-sm text-muted-foreground font-bold uppercase tracking-widest ml-2">4.9 / 5.0</span>
@@ -248,33 +278,33 @@ export function MovieDetail() {
                     { name: "Sarah J.", date: "2 days ago", rating: 5, comment: "Absolutely breathtaking. The cinematography and sound design are on another level. A must-watch in IMAX!", color: "bg-blue-500/10" },
                     { name: "Michael R.", date: "1 week ago", rating: 4, comment: "Intense and gripping from start to finish. Some plot points felt a bit rushed, but overall a masterpiece.", color: "bg-green-500/10" },
                     { name: "David L.", date: "Oct 15", rating: 5, comment: "I've seen it three times now and it gets better every time. Nolan has done it again.", color: "bg-purple-500/10" },
-                    { name: "Elena P.", date: "Oct 12", rating: 5, comment: "The soundtrack is hauntingly beautiful. I haven't been this moved by a movie in years.", color: "bg-red-500/10" }
-                  ].map((rev, i) => (
+                    { name: "Elena P.", date: "Oct 12", rating: 5, comment: "The soundtrack is hauntingly beautiful. I haven't been this moved by a movie in years.", color: "bg-red-500/10" },
+                  ].map((review, index) => (
                     <motion.div
-                      key={i}
+                      key={index}
                       initial={{ opacity: 0, y: 20 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
-                      transition={{ delay: i * 0.1 }}
+                      transition={{ delay: index * 0.1 }}
                       className="p-8 rounded-[2.5rem] bg-card border border-white/5 space-y-4 hover:border-primary/20 transition-all"
                     >
                       <div className="flex justify-between items-start">
                         <div className="flex items-center gap-4">
-                          <div className={`h-12 w-12 rounded-2xl flex items-center justify-center text-primary font-bold font-display text-xl border border-primary/20 ${rev.color}`}>
-                            {rev.name[0]}
+                          <div className={`h-12 w-12 rounded-2xl flex items-center justify-center text-primary font-bold font-display text-xl border border-primary/20 ${review.color}`}>
+                            {review.name[0]}
                           </div>
                           <div>
-                            <h4 className="text-white font-bold">{rev.name}</h4>
+                            <h4 className="text-white font-bold">{review.name}</h4>
                             <div className="flex mt-1">
-                              {Array.from({ length: 5 }).map((_, j) => (
-                                <Star key={j} className={j < rev.rating ? "h-3 w-3 text-primary fill-primary" : "h-3 w-3 text-white/10"} />
+                              {Array.from({ length: 5 }).map((_, starIndex) => (
+                                <Star key={starIndex} className={starIndex < review.rating ? "h-3 w-3 text-primary fill-primary" : "h-3 w-3 text-white/10"} />
                               ))}
                             </div>
                           </div>
                         </div>
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full">{rev.date}</span>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full">{review.date}</span>
                       </div>
-                      <p className="text-gray-400 leading-relaxed italic text-lg">"{rev.comment}"</p>
+                      <p className="text-gray-400 leading-relaxed italic text-lg">"{review.comment}"</p>
                     </motion.div>
                   ))}
 
@@ -286,7 +316,6 @@ export function MovieDetail() {
             </Tabs>
           </div>
 
-          {/* Sidebar Booking Panel */}
           <div className="lg:col-span-4">
             <div className="sticky top-24 space-y-6">
               <div className="bg-card border border-white/10 rounded-3xl p-8 shadow-2xl overflow-hidden relative">
@@ -294,33 +323,27 @@ export function MovieDetail() {
 
                 <h3 className="text-3xl font-display text-white mb-8">Book Tickets</h3>
 
-                {/* Date Selector */}
                 <div className="space-y-4 mb-8">
                   <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Select Date</label>
                   <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                    {dates.map((d: any, idx: number) => (
+                    {dates.map((date: any, index: number) => (
                       <button
-                        key={idx}
-                        onClick={() => setSelectedDate(d.fullDate)}
+                        key={index}
+                        onClick={() => setSelectedDate(date.fullDate)}
                         className={cn(
                           "flex flex-col items-center justify-center min-w-[64px] h-[84px] rounded-2xl border transition-all duration-300",
-                          selectedDate === d.fullDate
+                          selectedDate === date.fullDate
                             ? "bg-primary border-primary text-primary-foreground scale-105 shadow-lg shadow-primary/20"
                             : "bg-secondary/30 border-white/5 hover:bg-white/10 text-muted-foreground"
                         )}
                       >
-                        <span className="text-[10px] uppercase font-bold tracking-widest mb-1 opacity-70">
-                          {d.day}
-                        </span>
-                        <span className="text-2xl font-bold font-display leading-none">
-                          {d.date}
-                        </span>
+                        <span className="text-[10px] uppercase font-bold tracking-widest mb-1 opacity-70">{date.day}</span>
+                        <span className="text-2xl font-bold font-display leading-none">{date.date}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Showtime Selector */}
                 <div className="space-y-4 mb-10">
                   <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Select Showtime</label>
                   <div className="grid grid-cols-2 gap-3">
@@ -348,7 +371,6 @@ export function MovieDetail() {
                   </div>
                 </div>
 
-                {/* Booking Trigger */}
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button
@@ -371,7 +393,13 @@ export function MovieDetail() {
                       </DialogHeader>
 
                       <div className="relative">
-                        <SeatSelector onBooking={(count: number, total: number) => setBookingSummary({ count, total })} />
+                        <SeatSelector
+                          onBooking={(booking) => setBookingSummary(booking)}
+                          onProceedToCheckout={(selectedSeats) => {
+                            persistBookingSelection(selectedSeats);
+                            setLocation(`/checkout/${movie.id}`);
+                          }}
+                        />
                       </div>
 
                       <div className="flex flex-col md:flex-row items-center justify-between gap-8 border-t border-white/5 pt-12 mt-12 bg-white/[0.02] -mx-12 -mb-12 p-12">
@@ -384,6 +412,10 @@ export function MovieDetail() {
                             <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Showtime</p>
                             <p className="text-xl font-display text-white">{selectedTime}</p>
                           </div>
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Cinema</p>
+                            <p className="text-xl font-display text-white">{selectedCinema?.name || "Not selected"}</p>
+                          </div>
                         </div>
 
                         <div className="flex items-center gap-8 w-full md:w-auto">
@@ -391,11 +423,17 @@ export function MovieDetail() {
                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Amount</p>
                             <p className="text-4xl font-display font-bold text-white">${bookingSummary.total.toFixed(2)}</p>
                           </div>
-                          <Link href={`/checkout/${movie.id}`}>
-                            <Button size="lg" className="rounded-2xl h-16 px-12 font-bold text-lg bg-primary hover:bg-primary/90 shadow-2xl shadow-primary/20 flex-1 md:flex-none" disabled={bookingSummary.count === 0}>
-                              PAY NOW
-                            </Button>
-                          </Link>
+                          <Button
+                            size="lg"
+                            className="rounded-2xl h-16 px-12 font-bold text-lg bg-primary hover:bg-primary/90 shadow-2xl shadow-primary/20 flex-1 md:flex-none"
+                            disabled={bookingSummary.count === 0}
+                            onClick={() => {
+                              persistBookingSelection(bookingSummary.seats);
+                              setLocation(`/checkout/${movie.id}`);
+                            }}
+                          >
+                            PAY NOW
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -407,17 +445,57 @@ export function MovieDetail() {
                 </p>
               </div>
 
-              {/* Location Mini Map Mock */}
-              <div className="bg-card/30 border border-white/5 rounded-3xl p-6 flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                  <MapPin className="text-primary h-6 w-6" />
-                </div>
-                <div>
-                  <h4 className="text-white text-sm font-bold">Cineplex Grand Mall</h4>
-                  <p className="text-xs text-muted-foreground">3rd Floor, West Wing</p>
-                </div>
-                <ChevronRight className="ml-auto text-muted-foreground h-4 w-4" />
-              </div>
+              <Dialog open={isCinemaDialogOpen} onOpenChange={setIsCinemaDialogOpen}>
+                <DialogTrigger asChild>
+                  <button className="w-full bg-card/30 border border-white/5 rounded-3xl p-6 flex items-center gap-4 text-left hover:border-primary/20 transition-all">
+                    <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                      <MapPin className="text-primary h-6 w-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-white text-sm font-bold">{selectedCinema?.name || "Choose a cinema"}</h4>
+                      <p className="text-xs text-muted-foreground">
+                        {selectedCinema?.location || "Select the cinema where you want to watch this movie."}
+                      </p>
+                    </div>
+                    <ChevronRight className="ml-auto text-muted-foreground h-4 w-4" />
+                  </button>
+                </DialogTrigger>
+                <DialogContent className="bg-card border-white/10 text-white max-w-2xl rounded-3xl">
+                  <DialogHeader className="mb-4">
+                    <DialogTitle className="font-display text-3xl uppercase tracking-tight">Select Cinema</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                    {cinemas.map((cinema: any) => (
+                      <button
+                        key={cinema.id}
+                        onClick={() => {
+                          setSelectedCinema(cinema);
+                          setIsCinemaDialogOpen(false);
+                        }}
+                        className={cn(
+                          "w-full rounded-2xl border p-5 text-left transition-all",
+                          selectedCinema?.id === cinema.id
+                            ? "border-primary bg-primary/10 shadow-lg shadow-primary/10"
+                            : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <h4 className="text-white text-base font-bold">{cinema.name}</h4>
+                            <p className="text-sm text-muted-foreground mt-1">{cinema.location}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-primary">
+                              {cinema.distance || "Available"}
+                            </p>
+                            {cinema.rating && <p className="text-xs text-white mt-1">Rating {cinema.rating}</p>}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>
