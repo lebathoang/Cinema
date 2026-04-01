@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
+import { formatVndCurrency } from "@/lib/seatLayout";
 
 export function BookingHistory() {
   const bookings = [
@@ -24,7 +25,7 @@ export function BookingHistory() {
       time: "19:30",
       seats: "F12, F13",
       status: "Upcoming",
-      price: "$32.48",
+      price: 324800,
       poster: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&q=80&w=300"
     },
     {
@@ -35,7 +36,7 @@ export function BookingHistory() {
       time: "21:00",
       seats: "D4, D5",
       status: "Completed",
-      price: "$28.50",
+      price: 285000,
       poster: "https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&q=80&w=300"
     },
     {
@@ -46,7 +47,7 @@ export function BookingHistory() {
       time: "18:15",
       seats: "G10",
       status: "Completed",
-      price: "$14.99",
+      price: 149900,
       poster: "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?auto=format&fit=crop&q=80&w=300"
     }
   ];
@@ -134,7 +135,7 @@ export function BookingHistory() {
                       <div className="flex flex-col justify-center gap-4 min-w-[160px]">
                         <div className="text-right mb-2">
                           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Price</p>
-                          <p className="text-2xl font-display text-primary">{booking.price}</p>
+                          <p className="text-2xl font-display text-primary">{formatVndCurrency(booking.price)}</p>
                         </div>
                         <Link href={`/ticket/${booking.id}`}>
                           <Button className="w-full rounded-xl bg-white text-black font-bold hover:bg-white/90 gap-2 h-12">

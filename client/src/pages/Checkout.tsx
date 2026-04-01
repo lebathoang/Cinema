@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   CreditCard,
@@ -18,6 +18,9 @@ import {
 import { useLocation, useParams } from "wouter";
 import { getMovieDetail } from "@/api/movieApi";
 import { getOffers } from "@/api/cinemaApi";
+import { createPayment, checkoutOrder, confirmPayment } from "@/api/bookingApi";
+import { DEFAULT_TICKET_PRICE, formatHoldCountdown, formatVndCurrency } from "@/lib/seatLayout";
+import { useToast } from "@/hooks/use-toast";
 
 const extractNumericValue = (value: unknown) => {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -30,6 +33,34 @@ const extractNumericValue = (value: unknown) => {
   }
 
   return null;
+};
+
+const hasPercentageHint = (offer: any) => {
+  const candidateTexts = [
+    offer?.discount,
+    offer?.discount_text,
+    offer?.description,
+    offer?.title,
+    offer?.terms,
+    offer?.condition,
+    offer?.type,
+    offer?.discount_type,
+    offer?.promotion_type,
+    offer?.value_type,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return /%|percent|percentage|phan tram/.test(candidateTexts);
+};
+
+const getPercentageDiscount = (percentValue: number, subtotal: number) => {
+  if (!Number.isFinite(percentValue) || percentValue <= 0) {
+    return 0;
+  }
+
+  return (subtotal * percentValue) / 100;
 };
 
 const getOfferDiscountAmount = (offer: any, subtotal: number) => {
@@ -48,8 +79,15 @@ const getOfferDiscountAmount = (offer: any, subtotal: number) => {
     const percentValue = extractNumericValue(source);
 
     if (percentValue && percentValue > 0) {
-      return (subtotal * percentValue) / 100;
+      return getPercentageDiscount(percentValue, subtotal);
     }
+  }
+
+  const discountValue = extractNumericValue(offer.discount_value);
+  const percentageHint = hasPercentageHint(offer);
+
+  if (discountValue && discountValue > 0 && percentageHint && discountValue <= 100) {
+    return getPercentageDiscount(discountValue, subtotal);
   }
 
   const amountSources = [
@@ -57,7 +95,6 @@ const getOfferDiscountAmount = (offer: any, subtotal: number) => {
     offer.discountAmount,
     offer.amount,
     offer.value,
-    offer.discount_value,
   ];
 
   for (const source of amountSources) {
@@ -79,7 +116,15 @@ const getOfferDiscountAmount = (offer: any, subtotal: number) => {
 
   const percentMatch = textSources.match(/(\d+(?:\.\d+)?)\s*%/);
   if (percentMatch) {
-    return (subtotal * Number(percentMatch[1])) / 100;
+    return getPercentageDiscount(Number(percentMatch[1]), subtotal);
+  }
+
+  if (discountValue && discountValue > 0) {
+    if (discountValue <= 100) {
+      return getPercentageDiscount(discountValue, subtotal);
+    }
+
+    return discountValue;
   }
 
   const amountMatch = textSources.match(/\$?\s*(\d+(?:\.\d+)?)\s*(?:off|discount)/i);
@@ -99,7 +144,9 @@ export function Checkout() {
   const [bookingData, setBookingData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [offersLoading, setOffersLoading] = useState(true);
-  // get movie detail by id to movie detail page
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+  const { toast } = useToast();
+
   useEffect(() => {
     const fetchMovie = async () => {
       try {
@@ -115,7 +162,7 @@ export function Checkout() {
 
     fetchMovie();
   }, [params.id]);
-  // get list offers
+
   useEffect(() => {
     const fetchOffers = async () => {
       try {
@@ -137,7 +184,7 @@ export function Checkout() {
 
     fetchOffers();
   }, []);
-  // get seat booking to local storage
+
   useEffect(() => {
     const rawBooking = sessionStorage.getItem("pending-booking");
 
@@ -161,11 +208,13 @@ export function Checkout() {
   }, [params.id]);
 
   const selectedSeats = bookingData?.selectedSeats ?? [];
-  const pricePerSeat = bookingData?.pricePerSeat ?? 14.99;
+  const apiSeatIds = bookingData?.apiSeatIds ?? [];
+  const pricePerSeat = bookingData?.pricePerSeat ?? DEFAULT_TICKET_PRICE;
   const subtotal = selectedSeats.length * pricePerSeat;
   const bookingFee = selectedSeats.length > 0 ? 2.5 : 0;
   const discount = Math.min(getOfferDiscountAmount(selectedOffer, subtotal), subtotal + bookingFee);
   const total = Math.max(subtotal + bookingFee - discount, 0);
+  const holdCountdown = useMemo(() => formatHoldCountdown(bookingData?.expiresAt), [bookingData?.expiresAt]);
 
   const selectedShowtime = bookingData?.selectedTime ? new Date(bookingData.selectedTime) : null;
   const formattedDate = selectedShowtime
@@ -230,7 +279,7 @@ export function Checkout() {
                 animate={{ opacity: 1, y: 0 }}
                 className="flex flex-col gap-8 rounded-3xl border border-white/10 bg-card p-8 md:flex-row"
               >
-                <div className="aspect-[2/3] w-full flex-shrink-0 overflow-hidden rounded-xl md:w-32">
+                <div className="aspect-2/3 w-full shrink-0 overflow-hidden rounded-xl md:w-32">
                   <img src={movie.poster_url} alt={movie.title} className="h-full w-full object-cover" />
                 </div>
 
@@ -302,7 +351,7 @@ export function Checkout() {
               <div className="space-y-6">
                 <h3 className="text-2xl font-display uppercase tracking-tight text-white">Payment Method</h3>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <button className="flex items-center justify-between rounded-2xl border-2 border-primary bg-white/[0.03] p-6 shadow-xl shadow-primary/5 transition-all">
+                  <button className="flex items-center justify-between rounded-2xl border-2 border-primary bg-white/3 p-6 shadow-xl shadow-primary/5 transition-all">
                     <div className="flex items-center gap-4">
                       <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20 text-primary">
                         <CreditCard className="h-6 w-6" />
@@ -317,7 +366,7 @@ export function Checkout() {
                     <div className="h-5 w-5 rounded-full border-4 border-primary bg-primary-foreground" />
                   </button>
 
-                  <button className="cursor-not-allowed flex items-center justify-between rounded-2xl border border-white/10 bg-transparent p-6 opacity-50 grayscale transition-all hover:border-white/20">
+                  <button className="flex items-center justify-between rounded-2xl border border-white/10 bg-transparent p-6 transition-all hover:border-white/20">
                     <div className="flex items-center gap-4">
                       <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/5 text-muted-foreground">
                         <Ticket className="h-6 w-6" />
@@ -338,7 +387,7 @@ export function Checkout() {
                   <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                     Card Number
                   </label>
-                  <div className="flex h-14 items-center rounded-xl border border-white/10 bg-white/[0.03] px-4 text-white/40">
+                  <div className="flex h-14 items-center rounded-xl border border-white/10 bg-white/3 px-4 text-white/40">
                     **** **** **** 4242
                   </div>
                 </div>
@@ -348,7 +397,7 @@ export function Checkout() {
                     <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                       Expiry Date
                     </label>
-                    <div className="flex h-14 items-center rounded-xl border border-white/10 bg-white/[0.03] px-4 text-white/40">
+                    <div className="flex h-14 items-center rounded-xl border border-white/10 bg-white/3 px-4 text-white/40">
                       MM / YY
                     </div>
                   </div>
@@ -357,7 +406,7 @@ export function Checkout() {
                     <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                       CVV
                     </label>
-                    <div className="flex h-14 items-center rounded-xl border border-white/10 bg-white/[0.03] px-4 text-white/40">
+                    <div className="flex h-14 items-center rounded-xl border border-white/10 bg-white/3 px-4 text-white/40">
                       ***
                     </div>
                   </div>
@@ -384,7 +433,7 @@ export function Checkout() {
                           "group relative overflow-hidden rounded-2xl border p-5 text-left transition-all",
                           selectedOffer?.id === offer.id
                             ? "border-primary bg-primary/5 shadow-lg shadow-primary/5"
-                            : "border-white/5 bg-white/[0.02] hover:border-white/20"
+                            : "border-white/5 bg-white/2 hover:border-white/20"
                         )}
                       >
                         {selectedOffer?.id === offer.id && (
@@ -396,7 +445,7 @@ export function Checkout() {
                         <div className="flex items-start gap-4">
                           <div
                             className={cn(
-                              "flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-colors",
+                              "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors",
                               selectedOffer?.id === offer.id
                                 ? "bg-primary/20 text-primary"
                                 : "bg-white/5 text-muted-foreground"
@@ -414,7 +463,7 @@ export function Checkout() {
                               </span>
                               {previewDiscount > 0 && (
                                 <span className="rounded bg-primary/10 px-2 py-1 text-[10px] font-black uppercase tracking-tighter text-primary">
-                                  -${previewDiscount.toFixed(2)}
+                                  -{formatVndCurrency(previewDiscount)}
                                 </span>
                               )}
                             </div>
@@ -426,7 +475,7 @@ export function Checkout() {
                 </div>
 
                 {offers.length === 0 && (
-                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-6 text-center text-muted-foreground">
+                  <div className="rounded-2xl border border-white/5 bg-white/2 p-6 text-center text-muted-foreground">
                     No promo code offers are available right now.
                   </div>
                 )}
@@ -443,7 +492,7 @@ export function Checkout() {
                   <div className="mb-8 space-y-4">
                     <div className="flex items-center justify-between border-b border-white/5 py-2">
                       <span className="text-muted-foreground">Tickets ({selectedSeats.length}x)</span>
-                      <span className="font-medium text-white">${subtotal.toFixed(2)}</span>
+                      <span className="font-medium text-white">{formatVndCurrency(subtotal)}</span>
                     </div>
 
                     <AnimatePresence mode="wait">
@@ -464,7 +513,7 @@ export function Checkout() {
                               </span>
                             </div>
                             <span className="font-bold text-primary">
-                              -{discount > 0 ? `$${discount.toFixed(2)}` : "FREE"}
+                              -{discount > 0 ? formatVndCurrency(discount) : "0 VNĐ"}
                             </span>
                           </div>
                         </motion.div>
@@ -473,21 +522,23 @@ export function Checkout() {
 
                     <div className="flex items-center justify-between border-b border-white/5 py-2">
                       <span className="text-muted-foreground">Booking Fee</span>
-                      <span className="font-medium text-white">${bookingFee.toFixed(2)}</span>
+                      <span className="font-medium text-white">{formatVndCurrency(bookingFee)}</span>
                     </div>
 
                     <div className="flex items-center justify-between pt-4">
                       <span className="text-xl font-display text-white">Total Amount</span>
-                      <span className="text-3xl font-display font-bold text-primary">${total.toFixed(2)}</span>
+                      <span className="text-3xl font-display font-bold text-primary">{formatVndCurrency(total)}</span>
                     </div>
                   </div>
 
-                  <div className="mb-8 flex items-start gap-3 rounded-2xl border border-white/5 bg-white/[0.02] p-4">
-                    <ShieldCheck className="h-5 w-5 flex-shrink-0 text-green-500" />
+                  <div className="mb-8 flex items-start gap-3 rounded-2xl border border-white/5 bg-white/2 p-4">
+                    <ShieldCheck className="h-5 w-5 shrink-0 text-green-500" />
                     <div>
                       <p className="text-xs font-bold uppercase tracking-wider text-white">Secure Payment</p>
                       <p className="text-[10px] leading-relaxed text-muted-foreground">
-                        Your transaction is protected by 256-bit SSL encryption.
+                        {holdCountdown
+                          ? `Your selected seats are held for ${holdCountdown}.`
+                          : "Your transaction is protected by 256-bit SSL encryption."}
                       </p>
                     </div>
                   </div>
@@ -495,18 +546,73 @@ export function Checkout() {
                   <Button
                     size="lg"
                     className="group h-16 w-full rounded-2xl bg-primary text-lg font-bold text-primary-foreground shadow-2xl shadow-primary/20 hover:bg-primary/90"
-                    onClick={() => {
-                      alert("Booking confirmed! Redirecting to ticket...");
-                      sessionStorage.removeItem("pending-booking");
-                      setLocation("/");
+                    onClick={async () => {
+                      const token = localStorage.getItem("token");
+
+                      if (!token) {
+                        toast({
+                          title: "Login required",
+                          description: "Sign in before completing payment.",
+                          variant: "destructive",
+                        });
+                        setLocation("/login");
+                        return;
+                      }
+
+                      if (!bookingData?.showtimeId || apiSeatIds.length !== selectedSeats.length) {
+                        toast({
+                          title: "Booking data incomplete",
+                          description: "Showtime or seat mapping is missing for this booking.",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+
+                      setPaymentSubmitting(true);
+
+                      try {
+                        const order = await checkoutOrder({
+                          showTimeId: bookingData.showtimeId,
+                          seatIds: apiSeatIds,
+                        });
+
+                        const payment = await createPayment({
+                          orderId: order.orderId,
+                          amount: order.totalPrice,
+                          provider: "mock",
+                        });
+
+                        await confirmPayment({
+                          paymentId: payment.paymentId,
+                          orderId: order.orderId,
+                          seatIds: apiSeatIds,
+                          transactionCode: `TXN_${Date.now()}`,
+                        });
+
+                        sessionStorage.removeItem("pending-booking");
+                        sessionStorage.removeItem("pending-booking-expires-at");
+                        toast({
+                          title: "Payment confirmed",
+                          description: "Seats have been booked successfully.",
+                        });
+                        setLocation("/");
+                      } catch (error) {
+                        toast({
+                          title: "Payment failed",
+                          description: error instanceof Error ? error.message : "Could not complete the booking.",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setPaymentSubmitting(false);
+                      }
                     }}
-                    disabled={selectedSeats.length === 0}
+                    disabled={selectedSeats.length === 0 || paymentSubmitting}
                   >
-                    PAY NOW
+                    {paymentSubmitting ? "PROCESSING..." : "PAY NOW"}
                     <ChevronRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                   </Button>
 
-                  <div className="mt-6 flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+                  <div className="mt-6 flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground">
                     <Info className="h-3 w-3" />
                     <span>Refunds available up to 2 hours before show</span>
                   </div>

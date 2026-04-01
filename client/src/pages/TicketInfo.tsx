@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Link, useParams } from "wouter";
 import { Card } from "@/components/ui/card";
+import { formatVndCurrency } from "@/lib/seatLayout";
 
 export function TicketInfo() {
   const { id } = useParams();
@@ -28,7 +29,7 @@ export function TicketInfo() {
     date: "Oct 24, 2025",
     time: "19:30",
     seats: "F12, F13",
-    price: "$32.48",
+    price: 324800,
     status: "Valid",
     orderDate: "Oct 20, 2025"
   };
@@ -132,7 +133,7 @@ export function TicketInfo() {
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">Total Paid</span>
-                  <span className="text-primary font-bold text-lg">{ticket.price}</span>
+                  <span className="text-primary font-bold text-lg">{formatVndCurrency(ticket.price)}</span>
                 </div>
               </div>
               <div className="pt-6 border-t border-white/5 space-y-3">

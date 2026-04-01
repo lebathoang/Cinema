@@ -2,7 +2,7 @@ import { useParams, useLocation } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, MapPin, Star, Share2, Play, ChevronRight } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { SeatSelector } from "@/components/booking/SeatSelector";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,13 +12,27 @@ import { motion } from "framer-motion";
 import { getMovieDetail } from "@/api/movieApi";
 import { getMovieCast } from "@/api/castApi";
 import { getCinemas } from "@/api/cinemaApi";
+import { DEFAULT_TICKET_PRICE, formatVndCurrency } from "@/lib/seatLayout";
+
+interface AvailableDate {
+  fullDate: string;
+  day: string;
+  date: string;
+  timestamp: number;
+}
 
 export function MovieDetail() {
   const params = useParams();
   const [, setLocation] = useLocation();
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [bookingSummary, setBookingSummary] = useState({ count: 0, total: 0, seats: [] as string[] });
+  const [bookingSummary, setBookingSummary] = useState({
+    count: 0,
+    total: 0,
+    seats: [] as string[],
+    seatIds: [] as number[],
+    expiresAt: null as string | null,
+  });
   const [movie, setMovie] = useState<any>(null);
   const [cast, setCast] = useState([]);
   const [cinemas, setCinemas] = useState<any[]>([]);
@@ -60,7 +74,6 @@ export function MovieDetail() {
       try {
         const data = await getCinemas();
         setCinemas(data);
-        setSelectedCinema((currentCinema: any) => currentCinema ?? data?.[0] ?? null);
       } catch (err) {
         console.error(err);
       }
@@ -69,49 +82,121 @@ export function MovieDetail() {
     fetchCinemas();
   }, []);
 
-  if (loading) {
-    return <div className="text-white text-center mt-20">Loading...</div>;
-  }
+  const movieShowtimes = useMemo(() => {
+    return Array.isArray(movie?.showtimes)
+      ? movie.showtimes.filter((showtime: any) => showtime?.start_time && showtime?.cinema?.id)
+      : [];
+  }, [movie]);
 
-  if (!movie) return <NotFound />;
+  useEffect(() => {
+    if (!cinemas.length || !movieShowtimes.length) {
+      return;
+    }
 
-  const dates = Object.values(
-    movie.showtimes.reduce((acc: any, showtime: any) => {
+    setSelectedCinema((currentCinema: any) => {
+      if (currentCinema && movieShowtimes.some((showtime: any) => String(showtime.cinema.id) === String(currentCinema.id))) {
+        return currentCinema;
+      }
+
+      const firstCinemaId = movieShowtimes[0]?.cinema?.id;
+      return cinemas.find((cinema: any) => String(cinema.id) === String(firstCinemaId)) ?? currentCinema ?? cinemas[0];
+    });
+  }, [cinemas, movieShowtimes]);
+
+  const cinemaShowtimes = useMemo(() => {
+    if (!selectedCinema) {
+      return movieShowtimes;
+    }
+
+    return movieShowtimes.filter((showtime: any) => String(showtime.cinema.id) === String(selectedCinema.id));
+  }, [movieShowtimes, selectedCinema]);
+
+  const availableDates: AvailableDate[] = useMemo(() => {
+    const dateMap: Record<string, AvailableDate> = {};
+
+    for (const showtime of cinemaShowtimes as any[]) {
       const date = new Date(showtime.start_time);
       const key = date.toDateString();
 
-      if (!acc[key]) {
-        acc[key] = {
+      if (!dateMap[key]) {
+        dateMap[key] = {
           fullDate: key,
           day: date.toLocaleDateString("en-US", { weekday: "short" }),
           date: date.getDate().toString().padStart(2, "0"),
           timestamp: date.getTime(),
         };
       }
+    }
 
-      return acc;
-    }, {})
-  ).sort((a: any, b: any) => a.timestamp - b.timestamp);
+    return (Object.values(dateMap) as AvailableDate[]).sort(
+      (left, right) => left.timestamp - right.timestamp
+    );
+  }, [cinemaShowtimes]);
 
-  const filteredShowtimes = movie.showtimes.filter((showtime: any) => {
-    if (!selectedDate) return true;
-    return new Date(showtime.start_time).toDateString() === selectedDate;
-  });
+  useEffect(() => {
+    if (!availableDates.length) {
+      setSelectedDate(null);
+      return;
+    }
 
-  const persistBookingSelection = (selectedSeats: string[]) => {
+    setSelectedDate((currentDate) =>
+      currentDate && availableDates.some((date: any) => date.fullDate === currentDate)
+        ? currentDate
+        : availableDates[0].fullDate
+    );
+  }, [availableDates]);
+
+  const filteredShowtimes = useMemo(() => {
+    if (!selectedDate) {
+      return cinemaShowtimes;
+    }
+
+    return cinemaShowtimes.filter(
+      (showtime: any) => new Date(showtime.start_time).toDateString() === selectedDate
+    );
+  }, [cinemaShowtimes, selectedDate]);
+
+  useEffect(() => {
+    if (!filteredShowtimes.length) {
+      setSelectedTime(null);
+      return;
+    }
+
+    setSelectedTime((currentTime) =>
+      currentTime && filteredShowtimes.some((showtime: any) => showtime.start_time === currentTime)
+        ? currentTime
+        : filteredShowtimes[0].start_time
+    );
+  }, [filteredShowtimes]);
+
+  if (loading) {
+    return <div className="text-white text-center mt-20">Loading...</div>;
+  }
+
+  if (!movie) return <NotFound />;
+
+  const selectedShowtime = filteredShowtimes.find((showtime: any) => showtime.start_time === selectedTime) ?? null;
+
+  const persistBookingSelection = (selectedSeats: string[], seatIds: number[]) => {
+    const pricePerSeat = Number(selectedShowtime?.price ?? DEFAULT_TICKET_PRICE);
+
     const bookingPayload = {
       movieId: String(movie.id),
       movieTitle: movie.title,
       posterUrl: movie.poster_url,
       selectedSeats,
+      apiSeatIds: seatIds,
       seatCount: selectedSeats.length,
-      subtotal: selectedSeats.length * 14.99,
-      total: selectedSeats.length * 14.99,
+      subtotal: selectedSeats.length * pricePerSeat,
+      total: selectedSeats.length * pricePerSeat,
       selectedDate,
       selectedTime,
+      showtimeId: selectedShowtime?.id ?? null,
+      roomId: selectedShowtime?.room?.id ?? null,
       selectedCinema,
-      hall: "Hall 04",
-      pricePerSeat: 14.99,
+      hall: selectedShowtime?.room?.name || "Hall 04",
+      pricePerSeat,
+      expiresAt: bookingSummary.expiresAt,
     };
 
     sessionStorage.setItem("pending-booking", JSON.stringify(bookingPayload));
@@ -248,10 +333,7 @@ export function MovieDetail() {
                       </div>
                       <h4 className="text-white font-medium text-center">{item.name}</h4>
                       <p className="text-xs text-muted-foreground text-center">{item.character_name}</p>
-
-                      {item.role_type === "VOICE" && (
-                        <p className="text-[10px] text-yellow-400 text-center">Voice Actor</p>
-                      )}
+                      {item.role_type === "VOICE" && <p className="text-[10px] text-yellow-400 text-center">Voice Actor</p>}
                     </div>
                   ))}
                 </div>
@@ -273,44 +355,6 @@ export function MovieDetail() {
                     </div>
                     <Button className="rounded-full bg-white/5 hover:bg-white/10 text-white border border-white/10 px-8">WRITE A REVIEW</Button>
                   </div>
-
-                  {[
-                    { name: "Sarah J.", date: "2 days ago", rating: 5, comment: "Absolutely breathtaking. The cinematography and sound design are on another level. A must-watch in IMAX!", color: "bg-blue-500/10" },
-                    { name: "Michael R.", date: "1 week ago", rating: 4, comment: "Intense and gripping from start to finish. Some plot points felt a bit rushed, but overall a masterpiece.", color: "bg-green-500/10" },
-                    { name: "David L.", date: "Oct 15", rating: 5, comment: "I've seen it three times now and it gets better every time. Nolan has done it again.", color: "bg-purple-500/10" },
-                    { name: "Elena P.", date: "Oct 12", rating: 5, comment: "The soundtrack is hauntingly beautiful. I haven't been this moved by a movie in years.", color: "bg-red-500/10" },
-                  ].map((review, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: index * 0.1 }}
-                      className="p-8 rounded-[2.5rem] bg-card border border-white/5 space-y-4 hover:border-primary/20 transition-all"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-4">
-                          <div className={`h-12 w-12 rounded-2xl flex items-center justify-center text-primary font-bold font-display text-xl border border-primary/20 ${review.color}`}>
-                            {review.name[0]}
-                          </div>
-                          <div>
-                            <h4 className="text-white font-bold">{review.name}</h4>
-                            <div className="flex mt-1">
-                              {Array.from({ length: 5 }).map((_, starIndex) => (
-                                <Star key={starIndex} className={starIndex < review.rating ? "h-3 w-3 text-primary fill-primary" : "h-3 w-3 text-white/10"} />
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full">{review.date}</span>
-                      </div>
-                      <p className="text-gray-400 leading-relaxed italic text-lg">"{review.comment}"</p>
-                    </motion.div>
-                  ))}
-
-                  <Button variant="ghost" className="w-full py-12 text-muted-foreground hover:text-white uppercase tracking-[0.4em] text-[10px] font-bold group">
-                    LOAD MORE REVIEWS <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </Button>
                 </div>
               </TabsContent>
             </Tabs>
@@ -326,7 +370,7 @@ export function MovieDetail() {
                 <div className="space-y-4 mb-8">
                   <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Select Date</label>
                   <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                    {dates.map((date: any, index: number) => (
+                    {availableDates.map((date: any, index: number) => (
                       <button
                         key={index}
                         onClick={() => setSelectedDate(date.fullDate)}
@@ -347,19 +391,19 @@ export function MovieDetail() {
                 <div className="space-y-4 mb-10">
                   <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Select Showtime</label>
                   <div className="grid grid-cols-2 gap-3">
-                    {filteredShowtimes.map((time: any) => {
-                      const formattedTime = new Date(time.start_time).toLocaleTimeString("en-GB", {
+                    {filteredShowtimes.map((showtime: any) => {
+                      const formattedTime = new Date(showtime.start_time).toLocaleTimeString("en-GB", {
                         hour: "2-digit",
                         minute: "2-digit",
                       });
 
                       return (
                         <button
-                          key={time.start_time}
-                          onClick={() => setSelectedTime(time.start_time)}
+                          key={showtime.id}
+                          onClick={() => setSelectedTime(showtime.start_time)}
                           className={cn(
                             "py-3 rounded-xl border text-sm font-bold transition-all duration-300",
-                            selectedTime === time.start_time
+                            selectedTime === showtime.start_time
                               ? "bg-white text-black border-white shadow-xl shadow-white/10"
                               : "bg-transparent border-white/10 text-white hover:border-white/30"
                           )}
@@ -368,6 +412,12 @@ export function MovieDetail() {
                         </button>
                       );
                     })}
+
+                    {selectedCinema && filteredShowtimes.length === 0 && (
+                      <p className="col-span-2 text-xs text-muted-foreground">
+                        This movie has no showtime for the selected cinema and date.
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -382,7 +432,7 @@ export function MovieDetail() {
                       <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-4xl bg-[#09090b] border-white/10 text-white p-0 overflow-hidden rounded-3xl max-h-[90vh]">
+                  <DialogContent className="max-w-5xl bg-[#09090b] border-white/10 text-white p-0 overflow-hidden rounded-3xl max-h-[90vh]">
                     <div className="p-8 md:p-12 overflow-y-auto scroll-overlay max-h-[90vh]">
                       <DialogHeader className="mb-12">
                         <div className="flex items-center gap-4 mb-2">
@@ -395,10 +445,12 @@ export function MovieDetail() {
                       <div className="relative">
                         <SeatSelector
                           onBooking={(booking) => setBookingSummary(booking)}
-                          onProceedToCheckout={(selectedSeats) => {
-                            persistBookingSelection(selectedSeats);
+                          onProceedToCheckout={(selectedSeats, seatIds) => {
+                            persistBookingSelection(selectedSeats, seatIds);
                             setLocation(`/checkout/${movie.id}`);
                           }}
+                          showTimeId={selectedShowtime?.id ?? null}
+                          pricePerSeat={Number(selectedShowtime?.price ?? DEFAULT_TICKET_PRICE)}
                         />
                       </div>
 
@@ -406,11 +458,11 @@ export function MovieDetail() {
                         <div className="flex gap-12">
                           <div className="space-y-1">
                             <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Selected Date</p>
-                            <p className="text-xl font-display text-white">{selectedDate}</p>
+                            <p className="text-xl font-display text-white">{selectedDate || "Not selected"}</p>
                           </div>
                           <div className="space-y-1">
                             <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Showtime</p>
-                            <p className="text-xl font-display text-white">{selectedTime}</p>
+                            <p className="text-xl font-display text-white">{selectedTime || "Not selected"}</p>
                           </div>
                           <div className="space-y-1">
                             <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Cinema</p>
@@ -421,14 +473,14 @@ export function MovieDetail() {
                         <div className="flex items-center gap-8 w-full md:w-auto">
                           <div className="text-right">
                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Amount</p>
-                            <p className="text-4xl font-display font-bold text-white">${bookingSummary.total.toFixed(2)}</p>
+                            <p className="text-4xl font-display font-bold text-white">{formatVndCurrency(bookingSummary.total)}</p>
                           </div>
                           <Button
                             size="lg"
                             className="rounded-2xl h-16 px-12 font-bold text-lg bg-primary hover:bg-primary/90 shadow-2xl shadow-primary/20 flex-1 md:flex-none"
                             disabled={bookingSummary.count === 0}
                             onClick={() => {
-                              persistBookingSelection(bookingSummary.seats);
+                              persistBookingSelection(bookingSummary.seats, bookingSummary.seatIds);
                               setLocation(`/checkout/${movie.id}`);
                             }}
                           >
@@ -465,34 +517,38 @@ export function MovieDetail() {
                     <DialogTitle className="font-display text-3xl uppercase tracking-tight">Select Cinema</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-                    {cinemas.map((cinema: any) => (
-                      <button
-                        key={cinema.id}
-                        onClick={() => {
-                          setSelectedCinema(cinema);
-                          setIsCinemaDialogOpen(false);
-                        }}
-                        className={cn(
-                          "w-full rounded-2xl border p-5 text-left transition-all",
-                          selectedCinema?.id === cinema.id
-                            ? "border-primary bg-primary/10 shadow-lg shadow-primary/10"
-                            : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-4">
-                          <div>
-                            <h4 className="text-white text-base font-bold">{cinema.name}</h4>
-                            <p className="text-sm text-muted-foreground mt-1">{cinema.location}</p>
+                    {cinemas
+                      .filter((cinema: any) =>
+                        movieShowtimes.some((showtime: any) => String(showtime.cinema.id) === String(cinema.id))
+                      )
+                      .map((cinema: any) => (
+                        <button
+                          key={cinema.id}
+                          onClick={() => {
+                            setSelectedCinema(cinema);
+                            setIsCinemaDialogOpen(false);
+                          }}
+                          className={cn(
+                            "w-full rounded-2xl border p-5 text-left transition-all",
+                            selectedCinema?.id === cinema.id
+                              ? "border-primary bg-primary/10 shadow-lg shadow-primary/10"
+                              : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <div>
+                              <h4 className="text-white text-base font-bold">{cinema.name}</h4>
+                              <p className="text-sm text-muted-foreground mt-1">{cinema.location}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-primary">
+                                {cinema.distance || "Available"}
+                              </p>
+                              {cinema.rating && <p className="text-xs text-white mt-1">Rating {cinema.rating}</p>}
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-primary">
-                              {cinema.distance || "Available"}
-                            </p>
-                            {cinema.rating && <p className="text-xs text-white mt-1">Rating {cinema.rating}</p>}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
+                        </button>
+                      ))}
                   </div>
                 </DialogContent>
               </Dialog>

@@ -19,7 +19,7 @@ import { toast } from "sonner";
 const offers = {
   "1": {
     title: "Student Monday",
-    discount: "50% OFF",
+    discount: "Giảm 50%",
     icon: Percent,
     color: "bg-blue-500",
     code: "STUDENT50",
@@ -27,7 +27,7 @@ const offers = {
   },
   "2": {
     title: "Family Bundle",
-    discount: "SAVE $20",
+    discount: "Giảm 20.000 VNĐ",
     icon: Users,
     color: "bg-purple-500",
     code: "FAMILY20",
@@ -35,7 +35,7 @@ const offers = {
   },
   "3": {
     title: "Bank Card Promo",
-    discount: "B1G1 FREE",
+    discount: "Mua 1 tặng 1",
     icon: CreditCard,
     color: "bg-amber-500",
     code: "BANKPREMIERE",
@@ -43,7 +43,7 @@ const offers = {
   },
   "4": {
     title: "Birthday Special",
-    discount: "FREE TICKET",
+    discount: "Vé miễn phí",
     icon: Gift,
     color: "bg-pink-500",
     code: "BDAYWISH",

@@ -16,6 +16,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { formatVndCurrency } from "@/lib/seatLayout";
 import { getMovies, suggestMovies, searchMovies } from "../api/movieApi";
 
 export function MoviesList() {
@@ -202,7 +203,9 @@ export function MoviesList() {
                   <div className="space-y-6">
                     <div className="flex justify-between items-center">
                       <h4 className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Price Range</h4>
-                      <span className="text-sm font-medium text-white">${priceRange[0]} - ${priceRange[1]}</span>
+                      <span className="text-sm font-medium text-white">
+                        {formatVndCurrency(priceRange[0] * 10000)} - {formatVndCurrency(priceRange[1] * 10000)}
+                      </span>
                     </div>
                     <Slider
                       defaultValue={[10, 20]}
