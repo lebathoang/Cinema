@@ -15,9 +15,19 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
+import type { LucideIcon } from "lucide-react";
+
+type SettingsItem = {
+  icon: LucideIcon;
+  label: string;
+  desc: string;
+  href?: string;
+  toggle?: boolean;
+  checked?: boolean;
+};
 
 export function Settings() {
-  const sections = [
+  const sections: Array<{ title: string; items: SettingsItem[] }> = [
     {
       title: "Account",
       items: [

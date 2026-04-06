@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link, useLocation } from "wouter";
+import { getStoredBookings } from "@/lib/bookingStore";
 
 export function Profile() {
   const [location] = useLocation();
@@ -35,26 +36,23 @@ export function Profile() {
   user.avatar ||
   `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullname)}&background=random&color=fff&size=200`;
 
-  const recentBookings = [
-    {
-      id: "BK-9021",
-      movie: "Nebula",
-      cinema: "Cineplex Grand Mall",
-      date: "Oct 24, 2025",
-      time: "19:30",
-      seats: "F12, F13",
-      status: "Upcoming"
-    },
-    {
-      id: "BK-8842",
-      movie: "Velocity",
-      cinema: "Premiere Cinema Park",
-      date: "Oct 18, 2025",
-      time: "21:00",
-      seats: "D4, D5",
-      status: "Completed"
-    }
-  ];
+  const recentBookings = getStoredBookings().slice(0, 2).map((booking) => {
+    const showtime = booking.showtime ? new Date(booking.showtime) : null;
+
+    return {
+      id: booking.id,
+      movie: booking.movieTitle,
+      cinema: booking.cinema,
+      date: showtime && !Number.isNaN(showtime.getTime())
+        ? showtime.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
+        : "TBA",
+      time: showtime && !Number.isNaN(showtime.getTime())
+        ? showtime.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+        : "TBA",
+      seats: booking.seats.join(", "),
+      status: booking.status === "paid" ? "Upcoming" : "Pending",
+    };
+  });
 
   return (
     <div className="min-h-screen bg-background pb-20">
