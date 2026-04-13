@@ -56,7 +56,7 @@ export function BookingHistory() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
           <div className="space-y-2">
             <h1 className="text-5xl font-display text-white uppercase tracking-tight">Booking History</h1>
-            <p className="text-muted-foreground text-lg">Danh sach booking da sync tu flow thanh toan VietQR.</p>
+            <p className="text-muted-foreground text-lg">Danh sach booking da sync tu flow thanh toan OnePay.</p>
           </div>
 
           <div className="flex gap-4 w-full md:w-auto">

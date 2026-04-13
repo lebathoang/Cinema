@@ -20,6 +20,9 @@ export interface StoredBooking {
   status: BookingStatus;
   payment: PaymentQrPayload | null;
   ticket: TicketPayload | null;
+  customerName?: string | null;
+  customerEmail?: string | null;
+  customerAge?: number | null;
 }
 
 const canUseStorage = () => typeof window !== "undefined";
@@ -65,3 +68,22 @@ export const upsertStoredBooking = (booking: StoredBooking) => {
 
 export const getStoredBookingById = (id: string) =>
   getStoredBookings().find((booking) => booking.id === id) ?? null;
+
+export const getStoredBookingByOrderId = (orderId: number) =>
+  getStoredBookings().find((booking) => booking.orderId === orderId) ?? null;
+
+export const updateStoredBookingByOrderId = (
+  orderId: number,
+  updater: (booking: StoredBooking) => StoredBooking
+) => {
+  const bookings = getStoredBookings();
+  const bookingIndex = bookings.findIndex((item) => item.orderId === orderId);
+
+  if (bookingIndex === -1) {
+    return null;
+  }
+
+  bookings[bookingIndex] = updater(bookings[bookingIndex]);
+  saveStoredBookings(bookings);
+  return bookings[bookingIndex];
+};

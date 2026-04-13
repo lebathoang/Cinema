@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { motion } from "framer-motion";
 import {
@@ -17,24 +18,36 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link, useLocation } from "wouter";
 import { getStoredBookings } from "@/lib/bookingStore";
+import { clearStoredUser, getStoredUser, USER_UPDATED_EVENT, type StoredUser } from "@/lib/userStorage";
 
 export function Profile() {
   const [location] = useLocation();
   const [, setLocation] = useLocation();
+  const [user, setUser] = useState<StoredUser>(() => getStoredUser());
+
+  useEffect(() => {
+    const syncUser = () => setUser(getStoredUser());
+
+    window.addEventListener(USER_UPDATED_EVENT, syncUser);
+    window.addEventListener("storage", syncUser);
+
+    return () => {
+      window.removeEventListener(USER_UPDATED_EVENT, syncUser);
+      window.removeEventListener("storage", syncUser);
+    };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearStoredUser();
 
     setLocation("/");
-
-    // reload để navbar render lại trạng thái
     window.location.reload();
   };
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+
   const avatar =
-  user.avatar ||
-  `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullname)}&background=random&color=fff&size=200`;
+    user.avatar ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(String(user.fullname || "User"))}&background=random&color=fff&size=200`;
 
   const recentBookings = getStoredBookings().slice(0, 2).map((booking) => {
     const showtime = booking.showtime ? new Date(booking.showtime) : null;
@@ -61,7 +74,6 @@ export function Profile() {
       <main className="pt-32 container mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
 
-          {/* Sidebar */}
           <div className="lg:col-span-4 space-y-6">
             <Card className="bg-card border-white/10 rounded-[2rem] overflow-hidden">
               <CardContent className="p-8 text-center">
@@ -69,7 +81,7 @@ export function Profile() {
                   <div className="h-32 w-32 rounded-full border-4 border-primary/20 p-1">
                     <img
                       src={avatar}
-                      alt={user.fullname}
+                      alt={String(user.fullname || "User")}
                       className="h-full w-full rounded-full object-cover"
                     />
                   </div>
@@ -103,8 +115,8 @@ export function Profile() {
                     <Link key={i} href={item.path}>
                       <button
                         className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all mb-2 ${item.active
-                            ? "bg-primary text-primary-foreground font-bold"
-                            : "text-muted-foreground hover:bg-white/5"
+                          ? "bg-primary text-primary-foreground font-bold"
+                          : "text-muted-foreground hover:bg-white/5"
                           }`}
                       >
                         <item.icon className="h-5 w-5" />
@@ -124,10 +136,7 @@ export function Profile() {
             </Card>
           </div>
 
-          {/* Main Content */}
           <div className="lg:col-span-8 space-y-12">
-
-            {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
                 { label: "Total Movies", value: "24", icon: Ticket, path: "/my-movies" },
@@ -151,7 +160,6 @@ export function Profile() {
               ))}
             </div>
 
-            {/* Recent Bookings */}
             <section className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-display text-white uppercase tracking-tight">Recent Bookings</h2>

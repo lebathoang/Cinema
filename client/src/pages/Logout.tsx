@@ -1,11 +1,14 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
+import { clearStoredUser } from "@/lib/userStorage";
 
 export function Logout() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    // Mock logout logic
+    localStorage.removeItem("token");
+    clearStoredUser();
+
     setTimeout(() => {
       setLocation("/login");
     }, 1000);

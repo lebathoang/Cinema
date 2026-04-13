@@ -11,6 +11,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, LoginFormData } from "../schemas/loginSchema";
 import { loginApi } from "@/api/authApi";
+import { setStoredUser } from "@/lib/userStorage";
 
 export function Login() {
   const {
@@ -29,7 +30,7 @@ export function Login() {
       const result = await loginApi(data);
 
       localStorage.setItem("token", result.token);
-      localStorage.setItem("user", JSON.stringify(result.user));
+      setStoredUser(result.user);
 
       setLocation("/");
 

@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   Ticket,
@@ -13,14 +13,14 @@ import {
   CheckCircle2,
   Tag,
   Info,
-  QrCode,
+  CreditCard,
   Landmark,
-  Copy,
+  BadgeCheck,
 } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { getMovieDetail } from "@/api/movieApi";
 import { getOffers } from "@/api/cinemaApi";
-import { createPayment, createPendingBooking, getPaymentStatus, simulateVietQrPayment } from "@/api/bookingApi";
+import { createOnePayCheckout, createPendingBooking } from "@/api/bookingApi";
 import { DEFAULT_TICKET_PRICE, formatHoldCountdown, formatVndCurrency } from "@/lib/seatLayout";
 import { useToast } from "@/hooks/use-toast";
 import { upsertStoredBooking } from "@/lib/bookingStore";
@@ -140,47 +140,10 @@ const formatShortTime = (dateString: string | null | undefined) => {
   });
 };
 
-const buildVietQrImageUrl = (paymentPayload: any) => {
-  const bankCode = paymentPayload?.bankCode;
-  const accountNumber = paymentPayload?.accountNumber;
-
-  if (!bankCode || !accountNumber) {
-    return null;
-  }
-
-  const searchParams = new URLSearchParams();
-
-  if (paymentPayload?.amount) {
-    searchParams.set("amount", String(Math.round(paymentPayload.amount)));
-  }
-
-  if (paymentPayload?.transferContent) {
-    searchParams.set("addInfo", paymentPayload.transferContent);
-  }
-
-  if (paymentPayload?.accountName) {
-    searchParams.set("accountName", paymentPayload.accountName);
-  }
-
-  const queryString = searchParams.toString();
-  return `https://img.vietqr.io/image/${bankCode}-${accountNumber}-compact2.png${queryString ? `?${queryString}` : ""}`;
-};
-
-const buildRawQrImageUrl = (paymentPayload: any) => {
-  const qrRawText = paymentPayload?.qrContent || paymentPayload?.paymentUrl;
-
-  if (!qrRawText) {
-    return null;
-  }
-
-  return `https://quickchart.io/qr?size=320&text=${encodeURIComponent(qrRawText)}`;
-};
-
 export function Checkout() {
   const params = useParams();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const pollTimerRef = useRef<number | null>(null);
   const [selectedOffer, setSelectedOffer] = useState<any>(null);
   const [offers, setOffers] = useState<any[]>([]);
   const [movie, setMovie] = useState<any>(null);
@@ -188,10 +151,7 @@ export function Checkout() {
   const [loading, setLoading] = useState(true);
   const [offersLoading, setOffersLoading] = useState(true);
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
-  const [paymentQr, setPaymentQr] = useState<any>(null);
-  const [activeBooking, setActiveBooking] = useState<any>(null);
-  const [paymentChecking, setPaymentChecking] = useState(false);
-  const [simulatingPayment, setSimulatingPayment] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   useEffect(() => {
     const fetchMovie = async () => {
@@ -245,14 +205,6 @@ export function Checkout() {
     }
   }, [params.id]);
 
-  useEffect(() => {
-    return () => {
-      if (pollTimerRef.current) {
-        window.clearInterval(pollTimerRef.current);
-      }
-    };
-  }, []);
-
   const selectedSeats = bookingData?.selectedSeats ?? [];
   const apiSeatIds = bookingData?.apiSeatIds ?? [];
   const pricePerSeat = bookingData?.pricePerSeat ?? DEFAULT_TICKET_PRICE;
@@ -265,173 +217,32 @@ export function Checkout() {
   const formattedDate = formatShortDate(bookingData?.selectedTime || bookingData?.selectedDate);
   const formattedTime = formatShortTime(bookingData?.selectedTime);
 
-  const persistBooking = (bookingDetail: any, paymentPayload = paymentQr) => {
-    const recordId = String(bookingDetail.bookingId || bookingDetail.orderId);
-
-    upsertStoredBooking({
-      id: recordId,
-      bookingId: bookingDetail.bookingId,
-      orderId: bookingDetail.orderId,
-      paymentId: paymentPayload?.paymentId ?? bookingDetail.payment?.paymentId ?? null,
-      movieId: String(bookingData?.movieId ?? params.id ?? ""),
-      movieTitle: bookingData?.movieTitle ?? movie?.title ?? "Movie Ticket",
-      posterUrl: bookingData?.posterUrl ?? movie?.poster_url ?? null,
-      cinema: bookingData?.selectedCinema?.name || bookingData?.hall || "Cinema",
-      hall: bookingData?.hall || "Hall 04",
-      seats: selectedSeats,
-      showtime: bookingData?.selectedTime ?? null,
-      price: bookingDetail.totalPrice || amountDue,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      status: bookingDetail.status,
-      payment: paymentPayload ?? bookingDetail.payment ?? null,
-      ticket: bookingDetail.ticket ?? null,
-    });
-  };
-
-  const completePaidBooking = (bookingDetail: any) => {
-    persistBooking(bookingDetail, paymentQr);
-    sessionStorage.removeItem("pending-booking");
-    sessionStorage.removeItem("pending-booking-expires-at");
-    toast({
-      title: "Thanh toan thanh cong",
-      description: "Ve da duoc xac nhan va QR ticket da san sang.",
-    });
-    setLocation(`/ticket/${bookingDetail.bookingId || bookingDetail.orderId}`);
-  };
-
-  const checkBookingStatus = async (orderId: number, paymentId?: number | null, silent = false) => {
-    try {
-      setPaymentChecking(true);
-      const detail = await getPaymentStatus(orderId, paymentId);
-
-      setActiveBooking(detail);
-      if (detail.payment) {
-        const nextPayment = detail.payment;
-        setPaymentQr((currentPaymentQr: any) => ({
-          ...currentPaymentQr,
-          ...nextPayment,
-          amount: nextPayment.amount || currentPaymentQr?.amount || amountDue,
-          qrCodeUrl: nextPayment.qrCodeUrl || currentPaymentQr?.qrCodeUrl || null,
-          qrCodeBase64: nextPayment.qrCodeBase64 || currentPaymentQr?.qrCodeBase64 || null,
-          qrContent: nextPayment.qrContent || currentPaymentQr?.qrContent || null,
-          paymentUrl: nextPayment.paymentUrl || currentPaymentQr?.paymentUrl || null,
-          bankCode: nextPayment.bankCode || currentPaymentQr?.bankCode || null,
-          bankName: nextPayment.bankName || currentPaymentQr?.bankName || null,
-          accountName: nextPayment.accountName || currentPaymentQr?.accountName || null,
-          accountNumber: nextPayment.accountNumber || currentPaymentQr?.accountNumber || null,
-          transferContent: nextPayment.transferContent || currentPaymentQr?.transferContent || null,
-        }));
-      }
-
-      persistBooking(
-        {
-          ...detail,
-          totalPrice: detail.totalPrice || amountDue,
-        },
-        detail.payment
-          ? {
-              ...detail.payment,
-              amount: detail.payment.amount || amountDue,
-            }
-          : paymentQr
-      );
-
-      if (detail.status === "paid") {
-        if (pollTimerRef.current) {
-          window.clearInterval(pollTimerRef.current);
-          pollTimerRef.current = null;
-        }
-
-        completePaidBooking(detail);
-        return;
-      }
-
-      if (!silent) {
-        toast({
-          title: "Chua nhan duoc giao dich",
-          description: "He thong van dang doi backend xac nhan tien vao.",
-        });
-      }
-    } catch (error) {
-      if (!silent) {
-        toast({
-          title: "Khong the kiem tra thanh toan",
-          description: error instanceof Error ? error.message : "Vui long thu lai sau it phut.",
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setPaymentChecking(false);
-    }
-  };
-
-  const startPolling = (bookingId: number, paymentId?: number | null) => {
-    if (pollTimerRef.current) {
-      window.clearInterval(pollTimerRef.current);
-    }
-
-    pollTimerRef.current = window.setInterval(() => {
-      checkBookingStatus(bookingId, paymentId, true);
-    }, 8000);
-  };
-
-  const handleSimulatePayment = async () => {
-    const orderId = activeBooking?.orderId || activeBooking?.bookingId;
-
-    if (!orderId) {
-      return;
-    }
-
-    try {
-      setSimulatingPayment(true);
-      const detail = await simulateVietQrPayment(orderId);
-      setActiveBooking(detail);
-
-      if (detail.payment) {
-        setPaymentQr((currentPaymentQr: any) => ({
-          ...currentPaymentQr,
-          ...detail.payment,
-        }));
-      }
-
-      if (detail.status === "paid") {
-        if (pollTimerRef.current) {
-          window.clearInterval(pollTimerRef.current);
-          pollTimerRef.current = null;
-        }
-
-        completePaidBooking(detail);
-        return;
-      }
-    } catch (error) {
-      toast({
-        title: "Khong simulate duoc thanh toan",
-        description: error instanceof Error ? error.message : "Vui long thu lai.",
-        variant: "destructive",
-      });
-    } finally {
-      setSimulatingPayment(false);
-    }
-  };
-
-  const handleCreateVietQr = async () => {
+  const handleCheckoutWithOnePay = async () => {
     const token = localStorage.getItem("token");
 
     if (!token) {
       toast({
         title: "Login required",
-        description: "Sign in before completing payment.",
+        description: "Sign in before continuing to OnePay.",
         variant: "destructive",
       });
       setLocation("/login");
       return;
     }
 
+    if (!acceptedTerms) {
+      toast({
+        title: "Please confirm payment terms",
+        description: "Bạn cần đồng ý điều khoản thanh toán trước khi chuyển sang OnePay.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!bookingData?.showtimeId || apiSeatIds.length !== selectedSeats.length || selectedSeats.length === 0) {
       toast({
         title: "Booking data incomplete",
-        description: "Showtime or seat mapping is missing for this booking.",
+        description: "Showtime hoặc seat mapping hiện chưa đầy đủ cho giao dịch này.",
         variant: "destructive",
       });
       return;
@@ -446,50 +257,64 @@ export function Checkout() {
         offerId: selectedOffer?.id,
       });
 
-      const rawPayment = await createPayment({
+      const onePayCheckout = await createOnePayCheckout({
         orderId: booking.orderId,
+        bookingId: booking.bookingId,
         amount: amountDue,
-        provider: "vietqr",
+        orderInfo: `${bookingData?.movieTitle || movie?.title || "Cinema Ticket"} - ORDER_${booking.orderId}`,
+        locale: "vn",
+        cardList: "DOMESTIC",
+        returnBaseUrl: window.location.origin,
       });
 
-      const payment = rawPayment
+      const payment = onePayCheckout.payment
         ? {
-            ...rawPayment,
-            amount: amountDue,
+            ...onePayCheckout.payment,
+            provider: "onepay",
+            paymentUrl: onePayCheckout.paymentUrl,
+            merchTxnRef: onePayCheckout.merchTxnRef,
+            amount: onePayCheckout.payment.amount || amountDue,
           }
         : null;
 
-      const bookingWithPayment = {
-        ...booking,
-        totalPrice: amountDue,
-        payment: payment ?? booking.payment,
-      };
-
-      setActiveBooking(bookingWithPayment);
-      setPaymentQr(payment ?? booking.payment);
-      persistBooking(bookingWithPayment, payment ?? booking.payment);
-      startPolling(booking.orderId, payment?.paymentId);
-
-      toast({
-        title: "Da tao booking pending",
-        description: "VietQR dang hien thi. FE se tu dong doi backend xac nhan thanh toan.",
+      upsertStoredBooking({
+        id: String(booking.bookingId || booking.orderId),
+        bookingId: booking.bookingId,
+        orderId: booking.orderId,
+        paymentId: payment?.paymentId ?? null,
+        movieId: String(bookingData?.movieId ?? params.id ?? ""),
+        movieTitle: bookingData?.movieTitle ?? movie?.title ?? "Movie Ticket",
+        posterUrl: bookingData?.posterUrl ?? movie?.poster_url ?? null,
+        cinema: bookingData?.selectedCinema?.name || bookingData?.hall || "Cinema",
+        hall: bookingData?.hall || "Hall 04",
+        seats: selectedSeats,
+        showtime: bookingData?.selectedTime ?? null,
+        price: amountDue,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: "pending",
+        payment,
+        ticket: booking.ticket ?? null,
+        customerName: booking.ticket?.customerName ?? null,
+        customerEmail: booking.ticket?.customerEmail ?? null,
+        customerAge: booking.ticket?.customerAge ?? null,
       });
+
+      if (!onePayCheckout.paymentUrl) {
+        throw new Error("OnePay payment URL was not created");
+      }
+      alert(onePayCheckout.paymentUrl);
+      console.log("OnePay URL:", onePayCheckout.paymentUrl);
+      window.location.assign(onePayCheckout.paymentUrl);
     } catch (error) {
       toast({
-        title: "Khong tao duoc VietQR",
-        description: error instanceof Error ? error.message : "Could not create booking.",
+        title: "Không thể chuyển sang OnePay",
+        description: error instanceof Error ? error.message : "Could not start payment.",
         variant: "destructive",
       });
-    } finally {
       setPaymentSubmitting(false);
     }
   };
-
-  const qrImageSrc =
-    paymentQr?.qrCodeUrl ||
-    (paymentQr?.qrCodeBase64 ? `data:image/png;base64,${paymentQr.qrCodeBase64}` : null) ||
-    buildRawQrImageUrl(paymentQr) ||
-    buildVietQrImageUrl(paymentQr);
 
   if (loading || offersLoading) {
     return (
@@ -591,160 +416,110 @@ export function Checkout() {
                 </div>
               </motion.div>
 
-              {!paymentQr ? (
-                <>
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-2xl font-display uppercase tracking-tight text-white">Available Offers</h3>
-                      <span className="rounded-full bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary">
-                        {offers.length} Offers Found
-                      </span>
-                    </div>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-display uppercase tracking-tight text-white">Available Offers</h3>
+                  <span className="rounded-full bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary">
+                    {offers.length} Offers Found
+                  </span>
+                </div>
 
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      {offers.map((offer) => {
-                        const previewDiscount = getOfferDiscountAmount(offer, subtotal);
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {offers.map((offer) => {
+                    const previewDiscount = getOfferDiscountAmount(offer, subtotal);
 
-                        return (
-                          <button
-                            key={offer.id}
-                            onClick={() => setSelectedOffer(offer)}
-                            className={cn(
-                              "group relative overflow-hidden rounded-2xl border p-5 text-left transition-all",
-                              selectedOffer?.id === offer.id ? "border-primary bg-primary/5 shadow-lg shadow-primary/5" : "border-white/5 bg-white/2 hover:border-white/20"
-                            )}
-                          >
-                            {selectedOffer?.id === offer.id && (
-                              <div className="absolute right-0 top-0 p-2">
-                                <CheckCircle2 className="h-5 w-5 text-primary" />
-                              </div>
-                            )}
+                    return (
+                      <button
+                        key={offer.id}
+                        onClick={() => setSelectedOffer(offer)}
+                        className={cn(
+                          "group relative overflow-hidden rounded-2xl border p-5 text-left transition-all",
+                          selectedOffer?.id === offer.id ? "border-primary bg-primary/5 shadow-lg shadow-primary/5" : "border-white/5 bg-white/2 hover:border-white/20"
+                        )}
+                      >
+                        {selectedOffer?.id === offer.id && (
+                          <div className="absolute right-0 top-0 p-2">
+                            <CheckCircle2 className="h-5 w-5 text-primary" />
+                          </div>
+                        )}
 
-                            <div className="flex items-start gap-4">
-                              <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl", selectedOffer?.id === offer.id ? "bg-primary/20 text-primary" : "bg-white/5 text-muted-foreground")}>
-                                <Tag className="h-5 w-5" />
-                              </div>
+                        <div className="flex items-start gap-4">
+                          <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl", selectedOffer?.id === offer.id ? "bg-primary/20 text-primary" : "bg-white/5 text-muted-foreground")}>
+                            <Tag className="h-5 w-5" />
+                          </div>
 
-                              <div>
-                                <p className="mb-1 font-bold text-white">{offer.title}</p>
-                                <p className="mb-3 text-xs leading-relaxed text-muted-foreground">{offer.description}</p>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="rounded bg-white/10 px-2 py-1 text-[10px] font-black uppercase tracking-tighter text-white">{offer.code}</span>
-                                  {previewDiscount > 0 && (
-                                    <span className="rounded bg-primary/10 px-2 py-1 text-[10px] font-black uppercase tracking-tighter text-primary">
-                                      -{formatVndCurrency(previewDiscount)}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
+                          <div>
+                            <p className="mb-1 font-bold text-white">{offer.title}</p>
+                            <p className="mb-3 text-xs leading-relaxed text-muted-foreground">{offer.description}</p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="rounded bg-white/10 px-2 py-1 text-[10px] font-black uppercase tracking-tighter text-white">{offer.code}</span>
+                              {previewDiscount > 0 && (
+                                <span className="rounded bg-primary/10 px-2 py-1 text-[10px] font-black uppercase tracking-tighter text-primary">
+                                  -{formatVndCurrency(previewDiscount)}
+                                </span>
+                              )}
                             </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-                  <div className="rounded-3xl border border-white/10 bg-card/60 p-8">
-                    <div className="mb-4 flex items-center gap-3">
-                      <Landmark className="h-5 w-5 text-primary" />
-                      <h3 className="text-2xl font-display uppercase tracking-tight text-white">Thanh Toan VietQR</h3>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Khi bam tao QR, backend se tao booking voi trang thai pending, sau do sinh VietQR de nguoi dung chuyen khoan.
+              <div className="space-y-6 rounded-3xl border border-white/10 bg-card/60 p-8">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <CreditCard className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-display uppercase tracking-tight text-white">OnePay Secure Checkout</h3>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      Bạn sẽ được chuyển sang cổng thanh toán OnePay để hoàn tất thanh toán bằng thẻ nội địa, thẻ quốc tế hoặc phương thức ngân hàng được OnePay hỗ trợ.
                     </p>
                   </div>
-                </>
-              ) : (
-                <div className="space-y-6 rounded-3xl border border-primary/20 bg-primary/5 p-8">
-                  <div className="flex items-center gap-3">
-                    <QrCode className="h-6 w-6 text-primary" />
-                    <div>
-                      <h3 className="text-2xl font-display uppercase tracking-tight text-white">Quet VietQR</h3>
-                      <p className="text-sm text-muted-foreground">Backend dang doi webhook hoac polling xac nhan tien vao.</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div className="flex items-center justify-center rounded-3xl bg-white p-6">
-                      {qrImageSrc ? (
-                        <img src={qrImageSrc} alt="VietQR" className="max-h-72 w-full object-contain" />
-                      ) : (
-                        <div className="flex h-72 w-full items-center justify-center rounded-2xl border border-dashed border-slate-300">
-                          <QrCode className="h-32 w-32 text-slate-700" />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-4 rounded-3xl border border-white/10 bg-background/40 p-6">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Phim</span>
-                        <span className="font-medium text-white text-right">
-                          {bookingData?.movieTitle || movie?.title || "Movie Ticket"}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Ma don</span>
-                        <span className="font-medium text-white">#{activeBooking?.bookingId || activeBooking?.orderId}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Tong tien</span>
-                        <span className="font-medium text-white">{formatVndCurrency(paymentQr.amount || amountDue)}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Ngan hang</span>
-                        <span className="font-medium text-white">{paymentQr.bankName || paymentQr.bankCode || "VietQR"}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">So tai khoan</span>
-                        <span className="font-medium text-white">{paymentQr.accountNumber || "--"}</span>
-                      </div>
-                      <div className="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Noi dung chuyen khoan</p>
-                        <div className="flex items-center gap-2">
-                              <p className="flex-1 break-all text-sm text-white">{paymentQr.transferContent || paymentQr.qrContent || `BOOKING_${activeBooking?.bookingId || activeBooking?.orderId}`}</p>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="border-white/10 hover:bg-white/5"
-                            onClick={() => {
-                              navigator.clipboard.writeText(paymentQr.transferContent || paymentQr.qrContent || "");
-                              toast({ title: "Da copy noi dung chuyen khoan" });
-                            }}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-3">
-                        <Button
-                          onClick={() => checkBookingStatus(activeBooking?.orderId || activeBooking?.bookingId, paymentQr.paymentId)}
-                          disabled={paymentChecking}
-                          className="flex-1 rounded-2xl font-bold"
-                        >
-                          {paymentChecking ? "DANG KIEM TRA..." : "TOI DA CHUYEN KHOAN"}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => startPolling(activeBooking?.orderId || activeBooking?.bookingId, paymentQr.paymentId)}
-                          className="rounded-2xl border-white/10 hover:bg-white/5"
-                        >
-                          Auto Poll
-                        </Button>
-                      </div>
-
-                      <Button
-                        variant="outline"
-                        onClick={handleSimulatePayment}
-                        disabled={simulatingPayment}
-                        className="w-full rounded-2xl border-primary/30 text-primary hover:bg-primary/10"
-                      >
-                        {simulatingPayment ? "DANG SIMULATE..." : "SIMULATE BANK TRANSFER"}
-                      </Button>
-                    </div>
-                  </div>
                 </div>
-              )}
+
+                <div className="grid gap-4 md:grid-cols-3">
+                  {[
+                    {
+                      icon: ShieldCheck,
+                      title: "Redirect Gateway",
+                      description: "Nhập thông tin thanh toán trực tiếp trên trang OnePay, không xử lý card trên frontend.",
+                    },
+                    {
+                      icon: BadgeCheck,
+                      title: "Verified Return",
+                      description: "Backend xác thực `vpc_SecureHash` khi OnePay trả kết quả về hệ thống.",
+                    },
+                    {
+                      icon: Landmark,
+                      title: "IPN Callback",
+                      description: "Hệ thống backend nhận callback độc lập để đối soát trạng thái giao dịch.",
+                    },
+                  ].map((item) => (
+                    <div key={item.title} className="rounded-2xl border border-white/10 bg-background/40 p-5">
+                      <item.icon className="mb-3 h-5 w-5 text-primary" />
+                      <p className="mb-2 text-sm font-bold uppercase tracking-wider text-white">{item.title}</p>
+                      <p className="text-xs leading-relaxed text-muted-foreground">{item.description}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={acceptedTerms}
+                      onChange={(event) => setAcceptedTerms(event.target.checked)}
+                      className="mt-1 h-4 w-4 rounded border-white/20 bg-transparent accent-primary"
+                    />
+                    <span className="text-sm leading-relaxed text-muted-foreground">
+                      Tôi xác nhận thông tin vé là chính xác và đồng ý tiếp tục sang cổng OnePay để thanh toán. Giao dịch chỉ được xác nhận khi backend nhận được kết quả thành công hợp lệ từ OnePay.
+                    </span>
+                  </label>
+                </div>
+              </div>
             </div>
 
             <div className="lg:col-span-4">
@@ -779,53 +554,35 @@ export function Checkout() {
 
                     <div className="flex items-center justify-between pt-4">
                       <span className="text-xl font-display text-white">Total Amount</span>
-                      <span className="text-3xl font-display font-bold text-primary">{formatVndCurrency(activeBooking?.totalPrice || amountDue)}</span>
+                      <span className="text-3xl font-display font-bold text-primary">{formatVndCurrency(amountDue)}</span>
                     </div>
                   </div>
 
                   <div className="mb-8 flex items-start gap-3 rounded-2xl border border-white/5 bg-white/2 p-4">
                     <ShieldCheck className="h-5 w-5 shrink-0 text-green-500" />
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-white">
-                        {paymentQr ? "Waiting For Bank Transfer" : "Secure Payment"}
-                      </p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-white">OnePay Redirect Payment</p>
                       <p className="text-[10px] leading-relaxed text-muted-foreground">
-                        {paymentQr
-                          ? "Backend se cap nhat booking sang paid ngay khi detect tien vao."
-                          : holdCountdown
-                            ? `Your selected seats are held for ${holdCountdown}.`
-                            : "Your transaction is protected by 256-bit SSL encryption."}
+                        {holdCountdown
+                          ? `Your selected seats are held for ${holdCountdown}.`
+                          : "Your transaction will be verified after OnePay redirects back to the system."}
                       </p>
                     </div>
                   </div>
 
-                  {!paymentQr && (
-                    <Button
-                      size="lg"
-                      className="group h-16 w-full rounded-2xl bg-primary text-lg font-bold text-primary-foreground shadow-2xl shadow-primary/20 hover:bg-primary/90"
-                      onClick={handleCreateVietQr}
-                      disabled={selectedSeats.length === 0 || paymentSubmitting}
-                    >
-                      {paymentSubmitting ? "CREATING QR..." : "TAO VIETQR"}
-                      <ChevronRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-                    </Button>
-                  )}
-
-                  {paymentQr && (
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="h-16 w-full rounded-2xl border-white/10 font-bold text-white hover:bg-white/5"
-                      onClick={() => checkBookingStatus(activeBooking?.orderId || activeBooking?.bookingId, paymentQr.paymentId)}
-                      disabled={paymentChecking}
-                    >
-                      {paymentChecking ? "DANG DOI XAC NHAN..." : "KIEM TRA THANH TOAN"}
-                    </Button>
-                  )}
-
+                  <Button
+                    size="lg"
+                    className="group h-16 w-full rounded-2xl bg-primary text-lg font-bold text-primary-foreground shadow-2xl shadow-primary/20 hover:bg-primary/90"
+                    onClick={handleCheckoutWithOnePay}
+                    disabled={selectedSeats.length === 0 || paymentSubmitting}
+                  >
+                    {paymentSubmitting ? "REDIRECTING TO ONEPAY..." : "PAY WITH ONEPAY"}
+                    <ChevronRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  </Button>
+                  
                   <div className="mt-6 flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground">
                     <Info className="h-3 w-3" />
-                    <span>{paymentQr ? "Ticket QR se sinh sau khi booking = paid" : "Refunds available up to 2 hours before show"}</span>
+                    <span>OnePay sandbox/production URL is signed from backend before redirect</span>
                   </div>
                 </div>
               </div>

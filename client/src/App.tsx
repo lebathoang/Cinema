@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import { Home } from "@/pages/Home";
 import { MovieDetail } from "@/pages/MovieDetail";
 import { Checkout } from "@/pages/Checkout";
+import { OnePayResult } from "@/pages/OnePayResult";
 import { MoviesList } from "@/pages/MoviesList";
 import { Cinemas } from "@/pages/Cinemas";
 import { CinemaSchedule } from "@/pages/CinemaSchedule";
@@ -43,6 +44,7 @@ function Router() {
       <Route path="/movies" component={MoviesList} />
       <Route path="/movie/:id" component={MovieDetail} />
       <Route path="/checkout/:id" component={Checkout} />
+      <Route path="/payment/onepay/result" component={OnePayResult} />
       <Route path="/cinemas" component={Cinemas} />
       <Route path="/cinema/:id" component={CinemaSchedule} />
       <Route path="/offers" component={Offers} />

@@ -127,6 +127,21 @@ export function TicketInfo() {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-1 gap-4 rounded-2xl border border-white/5 bg-white/5 p-6 md:grid-cols-3">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Customer</p>
+                    <p className="text-white font-bold">{ticket.customerName || ticket.ticket?.customerName || "N/A"}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Email</p>
+                    <p className="text-white font-bold break-all">{ticket.customerEmail || ticket.ticket?.customerEmail || "N/A"}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Age</p>
+                    <p className="text-white font-bold">{ticket.customerAge || ticket.ticket?.customerAge || "N/A"}</p>
+                  </div>
+                </div>
+
                 <div className="flex flex-col items-center justify-center py-8 gap-4">
                   <div className="p-6 bg-white rounded-3xl min-h-52 min-w-52 flex items-center justify-center">
                     {qrImageSrc ? (
@@ -196,9 +211,9 @@ export function TicketInfo() {
 
             <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 flex gap-4">
               <Info className="h-6 w-6 text-primary flex-shrink-0" />
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              {/* <p className="text-xs text-muted-foreground leading-relaxed">
                 QR ticket nay duoc render sau khi backend cap nhat booking sang paid va tra ve thong tin ticket cho FE.
-              </p>
+              </p> */}
             </div>
           </div>
         </div>

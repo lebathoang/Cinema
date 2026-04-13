@@ -109,25 +109,32 @@ export interface CreateBookingPayload {
   offerId?: number;
 }
 
-export interface CreatePaymentPayload {
+export interface CreateOnePayCheckoutPayload {
   orderId: number;
+  bookingId?: number;
   amount: number;
-  provider?: string;
+  orderInfo: string;
+  locale?: "vn" | "en";
+  cardList?: "INTERNATIONAL" | "DOMESTIC" | "QR";
+  returnBaseUrl?: string;
 }
 
 export type BookingStatus = "pending" | "paid" | "failed";
 
 export interface PaymentQrPayload {
   paymentId: number | null;
-  qrCodeUrl: string | null;
-  qrCodeBase64: string | null;
-  qrContent: string | null;
+  provider?: string | null;
+  merchTxnRef?: string | null;
+  transactionNo?: string | null;
+  gatewayResponseCode?: string | null;
+  gatewayMessage?: string | null;
+  secureHashValid?: boolean | null;
+  paidAt?: string | null;
   paymentUrl: string | null;
   bankName: string | null;
   bankCode: string | null;
   accountName: string | null;
   accountNumber: string | null;
-  transferContent: string | null;
   amount: number;
   expiresAt: string | null;
 }
@@ -137,6 +144,9 @@ export interface TicketPayload {
   qrCodeUrl: string | null;
   qrCodeBase64: string | null;
   qrContent: string | null;
+  customerName?: string | null;
+  customerEmail?: string | null;
+  customerAge?: number | null;
 }
 
 export interface BookingDetail {
@@ -156,15 +166,18 @@ const normalizePaymentPayload = (payload: any, fallbackAmount = 0): PaymentQrPay
 
   return {
     paymentId: asNumber(pickFirst(payload.paymentId, payload.id), 0) || null,
-    qrCodeUrl: pickFirst(payload.qrCodeUrl, payload.qr_url, payload.qr_image_url, payload.vietQrUrl, payload.qrImage, payload.qr, payload.dataURL) ?? null,
-    qrCodeBase64: pickFirst(payload.qrCodeBase64, payload.qr_base64, payload.qrImageBase64, payload.vietQrBase64, payload.dataURL, payload.qrDataURL) ?? null,
-    qrContent: pickFirst(payload.qrContent, payload.qr_content, payload.content, payload.vietQrContent, payload.rawQrContent, payload.raw_content, payload.addInfo) ?? null,
+    provider: pickFirst(payload.provider, payload.gateway, payload.method) ?? null,
+    merchTxnRef: pickFirst(payload.merchTxnRef, payload.transactionRef, payload.txnRef, payload.vpc_MerchTxnRef) ?? null,
+    transactionNo: pickFirst(payload.transactionNo, payload.vpc_TransactionNo, payload.gatewayTransactionNo) ?? null,
+    gatewayResponseCode: pickFirst(payload.gatewayResponseCode, payload.responseCode, payload.vpc_TxnResponseCode) ?? null,
+    gatewayMessage: pickFirst(payload.gatewayMessage, payload.message, payload.responseMessage) ?? null,
+    secureHashValid: typeof payload.secureHashValid === "boolean" ? payload.secureHashValid : null,
+    paidAt: pickFirst(payload.paidAt, payload.completedAt, payload.successAt) ?? null,
     paymentUrl: pickFirst(payload.paymentUrl, payload.checkoutUrl, payload.checkout_url, payload.deeplink, payload.deepLink, payload.url) ?? null,
     bankName: pickFirst(payload.bankName, payload.bank_name, payload.provider) ?? null,
     bankCode: pickFirst(payload.bankCode, payload.bank_code, payload.bin) ?? null,
     accountName: pickFirst(payload.accountName, payload.account_name) ?? null,
     accountNumber: pickFirst(payload.accountNumber, payload.account_number) ?? null,
-    transferContent: pickFirst(payload.transferContent, payload.transfer_content, payload.transferNote, payload.transfer_note, payload.addInfo, payload.description) ?? null,
     amount: asNumber(pickFirst(payload.amount, payload.totalPrice), fallbackAmount),
     expiresAt: pickFirst(payload.expiresAt, payload.expiredAt, payload.expireAt) ?? null,
   };
@@ -177,9 +190,15 @@ const normalizeTicketPayload = (payload: any): TicketPayload | null => {
 
   return {
     ticketCode: pickFirst(payload.ticketCode, payload.code, payload.bookingCode, payload.id) ?? null,
-    qrCodeUrl: pickFirst(payload.qrCodeUrl, payload.qr_url, payload.ticketQrUrl, payload.ticket_qr_url) ?? null,
+    qrCodeUrl: pickFirst(payload.qrCodeUrl, payload.qrImageUrl, payload.qr_url, payload.ticketQrUrl, payload.ticket_qr_url) ?? null,
     qrCodeBase64: pickFirst(payload.qrCodeBase64, payload.qr_base64, payload.ticketQrBase64) ?? null,
     qrContent: pickFirst(payload.qrContent, payload.qr_content, payload.ticketQrContent) ?? null,
+    customerName: pickFirst(payload.customerName, payload.fullname, payload.customer?.fullname, payload.customer?.name) ?? null,
+    customerEmail: pickFirst(payload.customerEmail, payload.email, payload.customer?.email) ?? null,
+    customerAge: (() => {
+      const value = pickFirst(payload.customerAge, payload.age, payload.customer?.age);
+      return value === null || value === undefined ? null : asNumber(value, 0);
+    })(),
   };
 };
 
@@ -187,13 +206,6 @@ const normalizeBookingDetail = (payload: any): BookingDetail => {
   const raw = payload?.data ?? payload;
   const booking = raw?.booking ?? raw?.order ?? raw ?? {};
   const payment = raw?.payment ?? raw?.paymentInfo ?? booking?.payment ?? null;
-  const paymentWithVietQr =
-    payment && typeof payment === "object"
-      ? {
-          ...payment,
-          ...(payment.vietQr && typeof payment.vietQr === "object" ? payment.vietQr : {}),
-        }
-      : payment;
   const ticket = raw?.ticket ?? raw?.ticketInfo ?? booking?.ticket ?? null;
 
   const totalPrice = asNumber(
@@ -206,7 +218,7 @@ const normalizeBookingDetail = (payload: any): BookingDetail => {
     orderId: asNumber(pickFirst(raw?.orderId, booking?.orderId, booking?.id, raw?.id), 0),
     status: normalizeStatus(pickFirst(raw?.status, booking?.status, payment?.status)),
     totalPrice,
-    payment: normalizePaymentPayload(paymentWithVietQr, totalPrice),
+    payment: normalizePaymentPayload(payment, totalPrice),
     ticket: normalizeTicketPayload(ticket),
     raw,
   };
@@ -274,12 +286,37 @@ export const createPendingBooking = async (payload: CreateBookingPayload) => {
   }
 };
 
-export const createPayment = async (payload: CreatePaymentPayload) => {
+export const createOnePayCheckout = async (payload: CreateOnePayCheckoutPayload) => {
   try {
-    const response = await bookingApi.post("/payment/create", payload);
-    return normalizePaymentPayload(response.data?.data ?? response.data, payload.amount);
+    const response = await bookingApi.post("/onepay/create", payload);
+    const rawPayment = response.data?.payment ?? response.data;
+
+    return {
+      paymentUrl: pickFirst(response.data?.paymentUrl, rawPayment?.paymentUrl, rawPayment?.gatewayUrl) ?? null,
+      merchTxnRef: pickFirst(response.data?.merchTxnRef, rawPayment?.merchTxnRef) ?? null,
+      provider: pickFirst(response.data?.provider, rawPayment?.provider) ?? "onepay",
+      payment: normalizePaymentPayload(rawPayment, payload.amount),
+    };
   } catch (error) {
-    throw new Error(getApiErrorMessage(error, "Failed to create payment"));
+    throw new Error(getApiErrorMessage(error, "Failed to create OnePay checkout"));
+  }
+};
+
+export const getOnePayPaymentByTxnRef = async (merchTxnRef: string) => {
+  try {
+    const response = await bookingApi.get(`/onepay/payment/${merchTxnRef}`);
+    return normalizePaymentPayload(response.data?.payment ?? response.data, 0);
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Failed to load OnePay transaction"));
+  }
+};
+
+export const getOnePayPaymentByOrderId = async (orderId: number) => {
+  try {
+    const response = await bookingApi.get(`/onepay/order/${orderId}`);
+    return normalizePaymentPayload(response.data?.payment ?? response.data, 0);
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Failed to load OnePay transaction"));
   }
 };
 
@@ -294,36 +331,6 @@ export const getBookingDetail = async (bookingId: number) => {
     return normalizeBookingDetail((response as any).data);
   } catch (error) {
     throw new Error(getApiErrorMessage(error, "Failed to load booking"));
-  }
-};
-
-export const getPaymentStatus = async (orderId: number, paymentId?: number | null) => {
-  try {
-    const response = await requestFirstSuccess([
-      () => bookingApi.get(`/payment/status/${orderId}`),
-      () => bookingApi.get(`/order/${orderId}`),
-      () => bookingApi.get(`/booking/${orderId}`),
-      () => {
-        if (!paymentId) {
-          throw new Error("Missing payment id");
-        }
-
-        return bookingApi.get(`/payment/${paymentId}`);
-      },
-    ]);
-
-    return normalizeBookingDetail((response as any).data);
-  } catch (error) {
-    throw new Error(getApiErrorMessage(error, "Failed to check payment status"));
-  }
-};
-
-export const simulateVietQrPayment = async (orderId: number) => {
-  try {
-    const response = await bookingApi.post(`/payment/simulate/${orderId}`);
-    return normalizeBookingDetail(response.data?.result ?? response.data);
-  } catch (error) {
-    throw new Error(getApiErrorMessage(error, "Failed to simulate payment"));
   }
 };
 

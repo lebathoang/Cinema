@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { suggestMovies } from "@/api/movieApi";
+import { getStoredUser, USER_UPDATED_EVENT } from "@/lib/userStorage";
 
 function debounce(fn: any, delay: any) {
   let timeout: any;
@@ -29,6 +30,7 @@ export function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
   const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [suggestions, setSuggestions] = useState<{ title: string }[]>([]);
   const [loadingSuggest, setLoadingSuggest] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -50,10 +52,22 @@ export function Navbar() {
   }, 300);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    const syncUser = () => {
+      const storedUser = getStoredUser();
+      const storedToken = localStorage.getItem("token");
+
+      setUser(Object.keys(storedUser).length ? storedUser as any : null);
+      setIsAuthenticated(Boolean(storedToken) || Object.keys(storedUser).length > 0);
+    };
+
+    syncUser();
+    window.addEventListener(USER_UPDATED_EVENT, syncUser);
+    window.addEventListener("storage", syncUser);
+
+    return () => {
+      window.removeEventListener(USER_UPDATED_EVENT, syncUser);
+      window.removeEventListener("storage", syncUser);
+    };
   }, []);
 
   const handleSearch = () => {
@@ -120,7 +134,7 @@ export function Navbar() {
               <span className="absolute top-2 right-2 h-2 w-2 bg-primary rounded-full" />
             </Button>
           </Link>
-          {user ? (
+          {isAuthenticated ? (
             <Link href="/profile">
               <Button
                 variant="ghost"
