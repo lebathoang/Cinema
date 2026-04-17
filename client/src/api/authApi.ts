@@ -3,13 +3,33 @@ import { LoginFormData } from "../schemas/loginSchema";
 import { RegisterFormData } from "../schemas/registerSchema";
 import { ForgotPasswordFormData } from "../schemas/forgotPasswordSchema";
 import { ProfileFormData } from "../schemas/profileSchema";
+import { ChangePasswordFormData } from "../schemas/changePasswordSchema";
 import type { StoredUser } from "@/lib/userStorage";
-
-const apiBaseUrl = import.meta.env.VITE_CINEMA_API_BASE_URL || "http://localhost:5000/api";
+import { API_BASE_URL } from "./apiBaseUrl";
 
 const api = axios.create({
-  baseURL: `${apiBaseUrl}/auth`,
+  baseURL: `${API_BASE_URL}/auth`,
 });
+
+const userApi = axios.create({
+  baseURL: `${API_BASE_URL}/user`,
+});
+
+const attachAuthToken = (config: any) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      config.headers = config.headers ?? {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+
+  return config;
+};
+
+api.interceptors.request.use(attachAuthToken);
+userApi.interceptors.request.use(attachAuthToken);
 
 type LoginApiResult = {
   token: string;
@@ -99,8 +119,32 @@ export const forgotPassword = async (data: ForgotPasswordFormData) => {
 export const updateProfileApi = async (userId: string, data: ProfileFormData) => {
   try {
     const res = await api.put(`/profile/${userId}`, data);
-    return res.data;
+    return {
+      ...res.data,
+      user:
+        res.data?.user ??
+        res.data?.data ??
+        res.data?.profile ??
+        null,
+    };
   } catch (error: any) {
     throw new Error(error.response?.data?.message || "Update profile failed");
+  }
+};
+
+export const changePasswordApi = async (
+  userId: string,
+  data: ChangePasswordFormData,
+) => {
+  try {
+    const res = await userApi.put("/change-password", {
+      userId,
+      oldPassword: data.currentPassword,
+      newPassword: data.newPassword,
+    });
+
+    return res.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Change password failed");
   }
 };

@@ -25,13 +25,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Link } from "wouter";
 import type { LucideIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { updateProfileApi } from "@/api/authApi";
+import { changePasswordApi, updateProfileApi } from "@/api/authApi";
 import { profileSchema, type ProfileFormData } from "@/schemas/profileSchema";
+import { changePasswordSchema, type ChangePasswordFormData } from "@/schemas/changePasswordSchema";
 import { getStoredUser, setStoredUser, type StoredUser } from "@/lib/userStorage";
+import { Link } from "wouter";
 
 type SettingsItem = {
   icon: LucideIcon;
@@ -44,9 +45,13 @@ type SettingsItem = {
 
 export function Settings() {
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [updateError, setUpdateError] = useState("");
   const [updateSuccess, setUpdateSuccess] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
   const [currentUser, setCurrentUser] = useState<StoredUser>(() => getStoredUser());
   const {
     register,
@@ -61,6 +66,19 @@ export function Settings() {
       phone: currentUser.phone || "",
       avatar: currentUser.avatar || "",
       address: currentUser.address || "",
+    },
+  });
+  const {
+    register: registerPassword,
+    handleSubmit: handlePasswordSubmit,
+    reset: resetPasswordForm,
+    formState: { errors: passwordErrors },
+  } = useForm<ChangePasswordFormData>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
     },
   });
 
@@ -78,8 +96,24 @@ export function Settings() {
     }
   }, [currentUser, isProfileDialogOpen, reset]);
 
+  useEffect(() => {
+    if (isPasswordDialogOpen) {
+      resetPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setPasswordError("");
+      setPasswordSuccess("");
+    }
+  }, [isPasswordDialogOpen, resetPasswordForm]);
+
   const handleOpenProfileDialog = () => {
     setIsProfileDialogOpen(true);
+  };
+
+  const handleOpenPasswordDialog = () => {
+    setIsPasswordDialogOpen(true);
   };
 
   const onSubmit = async (data: ProfileFormData) => {
@@ -107,12 +141,38 @@ export function Settings() {
     }
   };
 
+  const onSubmitPassword = async (data: ChangePasswordFormData) => {
+    if (!currentUser?.id) {
+      setPasswordError("User information is missing. Please login again.");
+      return;
+    }
+
+    try {
+      setIsChangingPassword(true);
+      setPasswordError("");
+      setPasswordSuccess("");
+
+      await changePasswordApi(String(currentUser.id), data);
+      setPasswordSuccess("Password updated successfully.");
+      resetPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setTimeout(() => setIsPasswordDialogOpen(false), 800);
+    } catch (error: any) {
+      setPasswordError(error.message || "Unable to update password.");
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   const sections: Array<{ title: string; items: SettingsItem[] }> = [
     {
       title: "Account",
       items: [
         { icon: User, label: "Profile Information", desc: "Manage your personal details and avatar" },
-        { icon: Lock, label: "Password & Security", desc: "Change your password and enable 2FA", href: "/change-password" },
+        { icon: Lock, label: "Password & Security", desc: "Change your password and enable 2FA" },
         { icon: CreditCard, label: "Payment Methods", desc: "Manage your saved cards and billing" }
       ]
     },
@@ -172,9 +232,17 @@ export function Settings() {
                         </Link>
                       ) : (
                         <div 
-                          onClick={item.label === "Profile Information" ? handleOpenProfileDialog : undefined}
+                          onClick={
+                            item.label === "Profile Information"
+                              ? handleOpenProfileDialog
+                              : item.label === "Password & Security"
+                                ? handleOpenPasswordDialog
+                                : undefined
+                          }
                           className={`flex items-center justify-between p-6 hover:bg-white/5 transition-colors ${
-                            item.label === "Profile Information" ? "cursor-pointer" : ""
+                            item.label === "Profile Information" || item.label === "Password & Security"
+                              ? "cursor-pointer"
+                              : ""
                           } ${
                             i !== section.items.length - 1 ? "border-b border-white/5" : ""
                           }`}
@@ -219,7 +287,10 @@ export function Settings() {
         </div>
 
         <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
-          <DialogContent className="max-w-2xl border-white/10 bg-card text-white rounded-[2rem] p-0 overflow-hidden">
+          <DialogContent
+            className="max-w-2xl border-white/10 bg-card text-white rounded-[2rem] p-0 overflow-hidden"
+            onInteractOutside={() => setIsProfileDialogOpen(false)}
+          >
             <DialogHeader className="px-8 pt-8">
               <DialogTitle className="text-3xl font-display uppercase tracking-tight">
                 Profile Information
@@ -303,6 +374,84 @@ export function Settings() {
                   className="rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   {isUpdating ? "Updating..." : "Update"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+          <DialogContent
+            className="max-w-xl border-white/10 bg-card text-white rounded-[2rem] p-0 overflow-hidden"
+            onInteractOutside={() => setIsPasswordDialogOpen(false)}
+          >
+            <DialogHeader className="px-8 pt-8">
+              <DialogTitle className="text-3xl font-display uppercase tracking-tight">
+                Password & Security
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Change your password using the Cinema-API account endpoint.
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handlePasswordSubmit(onSubmitPassword)} className="px-8 pb-8 space-y-5">
+              <div className="space-y-2">
+                <label className="text-sm text-white/80">Current Password</label>
+                <Input
+                  type="password"
+                  {...registerPassword("currentPassword")}
+                  placeholder="Enter current password"
+                  className="h-12 rounded-2xl border-white/10 bg-white/5"
+                />
+                {passwordErrors.currentPassword && (
+                  <p className="text-sm text-red-500">{passwordErrors.currentPassword.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm text-white/80">New Password</label>
+                <Input
+                  type="password"
+                  {...registerPassword("newPassword")}
+                  placeholder="Enter new password"
+                  className="h-12 rounded-2xl border-white/10 bg-white/5"
+                />
+                {passwordErrors.newPassword && (
+                  <p className="text-sm text-red-500">{passwordErrors.newPassword.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm text-white/80">Confirm New Password</label>
+                <Input
+                  type="password"
+                  {...registerPassword("confirmPassword")}
+                  placeholder="Confirm new password"
+                  className="h-12 rounded-2xl border-white/10 bg-white/5"
+                />
+                {passwordErrors.confirmPassword && (
+                  <p className="text-sm text-red-500">{passwordErrors.confirmPassword.message}</p>
+                )}
+              </div>
+
+              {passwordError && <p className="text-sm text-red-500">{passwordError}</p>}
+              {passwordSuccess && <p className="text-sm text-green-500">{passwordSuccess}</p>}
+
+              <DialogFooter className="pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsPasswordDialogOpen(false)}
+                  className="rounded-2xl border-white/10 text-white hover:bg-white/5"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isChangingPassword}
+                  className="rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  {isChangingPassword ? "Updating..." : "Update Password"}
                 </Button>
               </DialogFooter>
             </form>

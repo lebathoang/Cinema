@@ -1,7 +1,8 @@
 import axios from "axios";
+import { API_BASE_URL } from "./apiBaseUrl";
 
 const bookingApi = axios.create({
-  baseURL: import.meta.env.VITE_CINEMA_API_BASE_URL || "http://localhost:5000/api",
+  baseURL: API_BASE_URL,
 });
 
 bookingApi.interceptors.request.use((config) => {

@@ -29,10 +29,6 @@ export async function registerRoutes(
 
       const updatedUser = await storage.updateUserProfile(id, payload);
 
-      if (!updatedUser) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
       return res.json({
         message: "Profile updated successfully",
         user: updatedUser,

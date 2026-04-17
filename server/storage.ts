@@ -15,9 +15,11 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
+  private profileFallbacks: Map<string, User>;
 
   constructor() {
     this.users = new Map();
+    this.profileFallbacks = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -34,7 +36,25 @@ export class MemStorage implements IStorage {
     const existingUser = this.users.get(id);
 
     if (!existingUser) {
-      return undefined;
+      const fallbackUser = this.profileFallbacks.get(id) ?? {
+        id,
+        username: `external_${id}`,
+        password: "",
+        fullname: profile.fullname,
+        age: null,
+        phone: null,
+        avatar: null,
+        address: null,
+      };
+
+      const updatedFallbackUser: User = {
+        ...fallbackUser,
+        ...profile,
+        avatar: profile.avatar || null,
+      };
+
+      this.profileFallbacks.set(id, updatedFallbackUser);
+      return updatedFallbackUser;
     }
 
     const updatedUser: User = { ...existingUser, ...profile };
@@ -59,6 +79,8 @@ export class MemStorage implements IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  private profileFallbacks = new Map<string, User>();
+
   async getUser(id: string): Promise<User | undefined> {
     if (!db) {
       return undefined;
@@ -94,7 +116,29 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
 
-    return user;
+    if (user) {
+      return user;
+    }
+
+    const fallbackUser = this.profileFallbacks.get(id) ?? {
+      id,
+      username: `external_${id}`,
+      password: "",
+      fullname: profile.fullname,
+      age: null,
+      phone: null,
+      avatar: null,
+      address: null,
+    };
+
+    const updatedFallbackUser: User = {
+      ...fallbackUser,
+      ...profile,
+      avatar: profile.avatar || null,
+    };
+
+    this.profileFallbacks.set(id, updatedFallbackUser);
+    return updatedFallbackUser;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
