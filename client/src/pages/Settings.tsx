@@ -33,6 +33,7 @@ import { profileSchema, type ProfileFormData } from "@/schemas/profileSchema";
 import { changePasswordSchema, type ChangePasswordFormData } from "@/schemas/changePasswordSchema";
 import { getStoredUser, setStoredUser, type StoredUser } from "@/lib/userStorage";
 import { Link } from "wouter";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 type SettingsItem = {
   icon: LucideIcon;
@@ -44,6 +45,7 @@ type SettingsItem = {
 };
 
 export function Settings() {
+  useRequireAuth();
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);

@@ -62,7 +62,7 @@ export async function registerRoutes(
       const redirectTarget =
         typeof req.query.redirect === "string" && req.query.redirect.trim()
           ? req.query.redirect
-          : `${process.env.APP_BASE_URL || "http://localhost:3000"}/payment/onepay/result`;
+          : `${process.env.APP_BASE_URL || "https://cinema.optimges.com"}/payment/onepay/result`;
 
       const payload = await handleOnePayGatewayReturn(req.query as Record<string, unknown>);
       const transaction = normalizeOnePayTransactionForClient(payload.transaction);

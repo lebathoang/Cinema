@@ -15,8 +15,8 @@ const ONEPAY_PAYMENT_URL = process.env.ONEPAY_PAYMENT_URL || "https://mtf.onepay
 const ONEPAY_MERCHANT = process.env.ONEPAY_MERCHANT || "TESTONEPAY";
 const ONEPAY_ACCESS_CODE = process.env.ONEPAY_ACCESS_CODE || "6BEB2546";
 const ONEPAY_SECURE_SECRET = process.env.ONEPAY_SECURE_SECRET || "6D0870CDE5D40475";
-const DEFAULT_APP_BASE_URL = process.env.APP_BASE_URL || "http://localhost:3000";
-const DEFAULT_API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3000";
+const DEFAULT_APP_BASE_URL = process.env.APP_BASE_URL || "https://cinema.optimges.com";
+const DEFAULT_API_BASE_URL = process.env.API_BASE_URL || "https://cinema.optimges.com";
 const ONEPAY_RETURN_PATH = "/api/onepay/return";
 const ONEPAY_IPN_PATH = "/api/onepay/ipn";
 

@@ -19,8 +19,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Link, useLocation } from "wouter";
 import { getStoredBookings } from "@/lib/bookingStore";
 import { clearStoredUser, getStoredUser, USER_UPDATED_EVENT, type StoredUser } from "@/lib/userStorage";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export function Profile() {
+  useRequireAuth();
   const [location] = useLocation();
   const [, setLocation] = useLocation();
   const [user, setUser] = useState<StoredUser>(() => getStoredUser());

@@ -303,8 +303,6 @@ export function Checkout() {
       if (!onePayCheckout.paymentUrl) {
         throw new Error("OnePay payment URL was not created");
       }
-      alert(onePayCheckout.paymentUrl);
-      console.log("OnePay URL:", onePayCheckout.paymentUrl);
       window.location.assign(onePayCheckout.paymentUrl);
     } catch (error) {
       toast({
